@@ -30,7 +30,7 @@ Factual record only. Add rows when the event exists in AO/GitHub. Do not infer o
 - Peak concurrent workers: `5` (sessions `tabyrinth-19/20/21/22/23`, based on AO created/last-activity timestamps)
 - Recorded worker span: `58m59s` (`tabyrinth-5` created 05:59:15Z through `tabyrinth-19` last activity 06:58:14Z; session `tabyrinth-23` end is `UNRECORDED`)
 - PRs opened in this record: `15` (#1–#15)
-- PRs merged in this record: `15` (#1–#15)
+- PRs merged in this record: `14` (#1 and #6–#13, #15)
 - CI recovery events: `UNRECORDED`
 - Review recovery events: `UNRECORDED`
 - Build duration: `UNRECORDED`
@@ -44,7 +44,7 @@ Two attempted AO OpenCode spawns returned `INTERNAL_ERROR`. No OpenCode worker, 
 ## Integrated main checkpoint
 
 - Upstream `origin/main` fetched and merged into this worktree without reset/checkout.
-- Confirmed integrated `origin/main` commit: `c95d3577e7d547278154b665e6c7a993a7263c68` (PR #15 merge).
+- Confirmed integrated `origin/main` commit: `c95d3577e7d547278154b665e6c7a993a7263c68` (PR #15 merge; PR #14 remains open).
 - PR #15 merged 2026-08-12T07:39:48Z; its two `verify` checks succeeded.
 - PR #13 merged 2026-08-12T07:25:29Z; its two `verify` checks succeeded. PR #12 merged 2026-08-12T07:03:29Z; PR #11 merged 2026-08-12T07:05:11Z. Both had green `verify` checks.
 - Real Chrome evidence: `UNVERIFIED`.
