@@ -4,3 +4,4 @@ export const getRoomNeighbors=(s:GameState,id:RoomId)=>{const i=s.orderedRoomIds
 export const isAdjacent=(s:GameState,a:RoomId,b:RoomId)=>{const n=getRoomNeighbors(s,a);return n.left===b||n.right===b;};
 export const canBreakBossSeal=(s:GameState)=>s.player.hasSigil&&s.orderedRoomIds.indexOf("vault")===s.orderedRoomIds.indexOf("boss")-1;
 export const getCurrentRoom=(s:GameState)=>s.roomById[s.player.currentRoomId];
+export const canMoveTo=(s:GameState,id:RoomId)=>Boolean(s.roomById[id]&&!s.roomById[id].destroyed&&isAdjacent(s,s.player.currentRoomId,id));
