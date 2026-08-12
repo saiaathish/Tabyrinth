@@ -54,6 +54,16 @@ describe("service worker lifecycle",()=>{
     expect(mock.session[STATE_KEY]).toEqual(state());
   });
 
+  it("does not resurrect reset state when tab removal callbacks arrive late", async () => {
+    const mock=createChromeMock(); vi.stubGlobal("chrome",mock.chrome); mock.session[STATE_KEY]=state();
+    const worker=await import("./service-worker");
+    const remove = mock.chrome.tabs.remove;
+    mock.chrome.tabs.remove = async (ids:number[]) => { await remove(ids); mock.listeners.removed.listeners[0]!(ids[0]!); };
+    await worker.handleMessage({type:"RESET_RUN"},{tab:{id:11}} as chrome.runtime.MessageSender);
+    await new Promise((resolve)=>setTimeout(resolve,0));
+    expect(mock.session[STATE_KEY]).toBeUndefined();
+  });
+
   it("creates and registers one managed Void tab after Break Seal", async () => {
     const mock=createChromeMock(); vi.stubGlobal("chrome",mock.chrome);
     const initial = state() as any;
