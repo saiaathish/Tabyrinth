@@ -57,4 +57,15 @@ describe("run controller contract", () => {
     expect(mock.removed).toEqual([[201, 202]]);
     expect(mock.session[STATE_KEY]).toBeUndefined();
   });
+
+  it("cleans up rooms when Entrance activation fails", async () => {
+    const mock = createChromeMock();
+    mock.update.mockRejectedValueOnce(new Error("activation failed"));
+    vi.stubGlobal("chrome", mock.chrome);
+
+    await expect(startRun()).rejects.toThrow("activation failed");
+    expect(mock.removed).toHaveLength(1);
+    expect(mock.removed[0]).toHaveLength(5);
+    expect(mock.session[STATE_KEY]).toBeUndefined();
+  });
 });

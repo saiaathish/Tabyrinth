@@ -30,9 +30,11 @@ export async function startRun(): Promise<GameState> {
     const orderedState = actualOrder.length === ids.length ? reduceGame(state, { type: "TAB_TOPOLOGY_SYNC", payload: { orderedRoomIds: actualOrder } }) : state;
     assertGameState(orderedState);
     await storage.set(orderedState);
-    await activateRoomTab(orderedState, "entrance");
+    if (!await activateRoomTab(orderedState, "entrance")) throw new Error("Entrance tab is unavailable");
     return orderedState;
   } catch (error) {
+    const persisted = await storage.get();
+    if (persisted?.runId === runId) await storage.clear();
     if (createdIds.length) await tabsAdapter.remove(createdIds).catch(() => undefined);
     throw error;
   }
