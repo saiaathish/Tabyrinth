@@ -35,6 +35,8 @@ The system uses a local-first stack: `ui-monospace` for instrumentation and labe
 
 Three roles only: focal (enter/leave), state (active/warning), feedback (button/topology response). CSS transitions stay transform/opacity/border-color. No perpetual animation by default. `prefers-reduced-motion: reduce` removes transforms and durations while preserving the final state. Consumers should pause decorative motion when `document.visibilityState !== "visible"`; these primitives never create timers or animation loops.
 
+Current implementation keeps motion state-driven: room/popup surfaces use a short focal entrance, notices and boss alerts use a brief state emphasis, and controls use small hover/press feedback. Reduced motion disables transforms, filters, and animation timing. Topology remains horizontally scrollable on narrow popup widths so room labels are not clipped.
+
 ## Accessibility and performance
 
 Native controls first; keyboard focus is visible; labels must remain meaningful without color; contrast target is WCAG AA. Panels do not trap focus. Topology remains readable when colors or motion are unavailable. Zero runtime dependencies, inline SVG only, CSS-only motion, no hydration, no network fetch, and no heavy effect library. React Bits was evaluated as refinement research, not a runtime dependency.
