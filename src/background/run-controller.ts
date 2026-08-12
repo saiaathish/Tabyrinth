@@ -1,0 +1,33 @@
+import { INITIAL_ROOMS } from "../game/constants";
+import { assertGameState } from "../game/invariants";
+import { reduceGame } from "../game/reducer";
+import { storage } from "../platform/chrome-storage";
+import { tabsAdapter } from "../platform/chrome-tabs";
+import type { GameState } from "../game/types";
+
+const uid = () => crypto.randomUUID();
+
+export async function startRun(): Promise<GameState> {
+  const existing = await storage.get();
+  if (existing && existing.status !== "idle") return existing;
+  const win = (await tabsAdapter.query({ active: true, currentWindow: true }))[0]?.windowId ?? -1;
+  const runId = uid();
+  const created = await Promise.all(INITIAL_ROOMS.map((room) => tabsAdapter.create(chrome.runtime.getURL(`room.html?run=${runId}&room=${room.roomId}`))));
+  const ids = created.map((tab) => tab.id as number);
+  const groupId = await tabsAdapter.group(ids) as number;
+  await tabsAdapter.updateGroup(groupId, "TABYRINTH");
+  const roomById = Object.fromEntries(INITIAL_ROOMS.map((room, index) => [room.roomId, { ...room, tabId: ids[index]!, visited: room.roomId === "entrance", destroyed: false, completed: false }])) as GameState["roomById"];
+  const state: GameState = { schemaVersion: 1, runId, status: "onboarding", groupId, windowId: win, roomById, roomIdByTabId: Object.fromEntries(ids.map((id, index) => [String(id), INITIAL_ROOMS[index]!.roomId])), orderedRoomIds: INITIAL_ROOMS.map((room) => room.roomId), player: { hp: 3, maxHp: 3, hasBlade: false, hasSigil: false, currentRoomId: "entrance" }, boss: { hp: 3, maxHp: 3, shieldBroken: false, voidActive: false, voidRoomId: null }, flags: { tutorialMoveCompleted: false, sigilAdjacencySatisfied: false, bossIntroduced: false }, metrics: { startedAt: Date.now(), endedAt: null, tabMoves: 0, roomsClosed: 0, actions: 0 }, revision: 0 };
+  assertGameState(state); await storage.set(state); return state;
+}
+
+export async function syncTopology(): Promise<GameState | null> {
+  const state = await storage.get(); if (!state || !state.groupId) return state;
+  const managed = await tabsAdapter.query({ groupId: state.groupId });
+  const ordered = managed.sort((a, b) => (a.index ?? 0) - (b.index ?? 0)).map((tab) => state.roomIdByTabId[String(tab.id)]).filter((id): id is string => Boolean(id));
+  const known = state.orderedRoomIds.filter((id) => !state.roomById[id].destroyed);
+  if (ordered.length !== known.length) return state;
+  const next = reduceGame(state, { type: "TAB_TOPOLOGY_SYNC", payload: { orderedRoomIds: ordered } }); assertGameState(next); if (next !== state) await storage.set(next); return next;
+}
+
+export async function resetRun(): Promise<void> { const state = await storage.get(); if (!state) return; const ids = Object.values(state.roomById).filter((room) => !room.destroyed).map((room) => room.tabId); if (ids.length) await tabsAdapter.remove(ids); await storage.clear(); }
