@@ -1,7 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { sendMessage } from "../../platform/chrome-messaging";
-import type { GameAction, GameState, RoomKind } from "../../game/types";
+import type { GameAction, GameState, Message, RoomKind } from "../../game/types";
 
 type Intent = "enter" | "take-blade" | "restore" | "take-sigil" | "break-seal" | "attack" | "move-left" | "move-right";
 const labels: Record<RoomKind, string> = { entrance: "The Threshold", armory: "The Armory", sanctum: "The Sanctum", vault: "The Vault", boss: "The Throne", void: "The Void Rift" };
