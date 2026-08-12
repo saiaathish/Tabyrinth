@@ -4,7 +4,7 @@ TABYRINTH turns your real Chrome tab strip into a dungeon: every managed tab is 
 
 ## Current state
 
-The integrated `main` history is included through commit `9e82ec1` (PR #10), with merged PRs [#6](https://github.com/saiaathish/Tabyrinth/pull/6), [#7](https://github.com/saiaathish/Tabyrinth/pull/7), [#8](https://github.com/saiaathish/Tabyrinth/pull/8), [#9](https://github.com/saiaathish/Tabyrinth/pull/9), and [#10](https://github.com/saiaathish/Tabyrinth/pull/10). Green `verify` checks are recorded for PRs #8–#10. The complete judge path (real Chrome tab reorder, Vault/Boss puzzle, VOID tab, and victory) is not manually verified in the current evidence set. Do not present those behaviors as browser-proven until direct Chrome evidence exists.
+The integrated `main` history is current through commit `e730b52` ([PR #11](https://github.com/saiaathish/Tabyrinth/pull/11)), with [PR #12](https://github.com/saiaathish/Tabyrinth/pull/12) also merged. Both PRs have green `verify` checks. The complete judge path (real Chrome tab reorder, Vault/Boss puzzle, VOID tab, and victory) remains **UNVERIFIED** because no direct real-Chrome critical-path run is recorded. Do not present those behaviors as browser-proven until direct Chrome evidence exists.
 
 ## Load the extension locally
 
@@ -59,4 +59,4 @@ See [docs/CI_CONTRACT.md](docs/CI_CONTRACT.md) for the CI contract and [docs/DEM
 
 ## AO build evidence
 
-AO evidence is append-only and factual. Current records cover AO sessions `tabyrinth-5` through `tabyrinth-23` where metadata exists, merged PRs #1 and #6–#10, and the CI outcomes explicitly listed in [docs/AO_BUILD_LOG.md](docs/AO_BUILD_LOG.md). OpenCode spawn was not completed: AO chat returned `INTERNAL_ERROR`, and the TUI path lacked its required `tmux` prerequisite. No OpenCode worker is claimed. Never fill an example with invented events.
+AO evidence is append-only and factual. Current records cover AO sessions `tabyrinth-5` through `tabyrinth-23` where metadata exists, merged PRs #1 and #6–#12, and the CI outcomes explicitly listed in [docs/AO_BUILD_LOG.md](docs/AO_BUILD_LOG.md). OpenCode spawn was not completed: AO chat returned `INTERNAL_ERROR`, and the TUI path lacked its required `tmux` prerequisite. No OpenCode worker is claimed. Never fill an example with invented events.
