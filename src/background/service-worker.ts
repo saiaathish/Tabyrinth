@@ -1,4 +1,4 @@
-import { startRun, syncTopology, resetRun, restoreManagedTab, spawnVoid } from "./run-controller";
+import { startRun, syncTopology, resetRun, restoreManagedTab, spawnVoid, activateRun } from "./run-controller";
 import { storage } from "../platform/chrome-storage";
 import { reduceGame } from "../game/reducer";
 import type { GameAction, Message } from "../game/types";
@@ -40,6 +40,7 @@ export async function handleMessage(message:Message, sender:chrome.runtime.Messa
   if(message.type==="START_RUN") return startRun();
   if(message.type==="GET_STATE") return storage.get();
   if(message.type==="RESET_RUN") { await resetRun(); return null; }
+  if(message.type==="ACTIVATE_RUN") return activateRun(message.roomId);
   if(message.type==="GAME_ACTION") {
     const state=await storage.get();
     if(!state || sender.tab?.id===undefined || state.roomIdByTabId[String(sender.tab.id)]===undefined) return state;

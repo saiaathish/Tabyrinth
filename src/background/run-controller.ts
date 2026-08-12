@@ -24,6 +24,14 @@ export async function startRun(): Promise<GameState> {
   assertGameState(orderedState); await storage.set(orderedState); return orderedState;
 }
 
+export async function activateRun(roomId?: string): Promise<{ state: GameState | null; activated: boolean }> {
+  const state = await storage.get();
+  if (!state) return { state: null, activated: false };
+  const target = roomId && state.roomById[roomId] ? state.roomById[roomId] : state.roomById[state.player.currentRoomId];
+  if (!target || target.destroyed) return { state, activated: false };
+  await tabsAdapter.update(target.tabId, { active: true }); return { state, activated: true };
+}
+
 export async function syncTopology(): Promise<GameState | null> {
   const state = await storage.get(); if (!state || !state.groupId) return state;
   const managed = await tabsAdapter.query({ groupId: state.groupId });
@@ -36,7 +44,7 @@ export async function syncTopology(): Promise<GameState | null> {
 export async function restoreManagedTab(tabId:number): Promise<boolean> {
   const state=await storage.get(); const room=state?.roomIdByTabId[String(tabId)];
   if(!state||!room||state.groupId===null) return false;
-  try { await tabsAdapter.group([tabId],state.groupId); return true; } catch { return false; }
+  try { await tabsAdapter.move([tabId], 0, state.windowId ?? undefined); await tabsAdapter.group([tabId],state.groupId); await syncTopology(); return true; } catch { return false; }
 }
 
 export async function spawnVoid(state: GameState): Promise<GameState> {

@@ -1,11 +1,29 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createChromeMock } from "../test/mocks/chrome";
 import { STATE_KEY } from "../platform/chrome-storage";
+import { activateRun } from "./run-controller";
 
 const state = (tabId=11) => ({ schemaVersion:1 as const, runId:"run", status:"active" as const, groupId:7, windowId:1, roomById:{entrance:{roomId:"entrance",kind:"entrance" as const,tabId,visited:true,destroyed:false,completed:false}}, roomIdByTabId:{[String(tabId)]:"entrance"}, orderedRoomIds:["entrance"], player:{hp:3,maxHp:3,hasBlade:false,hasSigil:false,currentRoomId:"entrance"}, boss:{hp:3,maxHp:3,shieldBroken:false,voidActive:false,voidRoomId:null}, flags:{tutorialMoveCompleted:false,sigilAdjacencySatisfied:false,bossIntroduced:false}, metrics:{startedAt:1,endedAt:null,tabMoves:0,roomsClosed:0,actions:0}, revision:0 });
 
 describe("service worker lifecycle",()=>{
   beforeEach(()=>vi.resetModules());
+
+  it("returns truthful activation results", async()=>{
+    const mock=createChromeMock(); vi.stubGlobal("chrome",mock.chrome); mock.session[STATE_KEY]=state();
+    expect(await activateRun()).toEqual({ state: mock.session[STATE_KEY], activated: true });
+    expect(mock.update).toHaveBeenCalledWith(11,{active:true});
+    (mock.session[STATE_KEY] as ReturnType<typeof state>).roomById.entrance.destroyed=true;
+    expect((await activateRun("entrance")).activated).toBe(false);
+    expect(await activateRun("missing")).toEqual({ state: mock.session[STATE_KEY], activated: false });
+    const missing = mock.session[STATE_KEY] as ReturnType<typeof state>; delete (missing.roomById as Record<string, unknown>).entrance;
+    expect(await activateRun()).toEqual({ state: mock.session[STATE_KEY], activated: false });
+    mock.session[STATE_KEY]=state();
+    (mock.session[STATE_KEY] as ReturnType<typeof state>).roomById.entrance.destroyed=true;
+    expect(await activateRun()).toEqual({ state: mock.session[STATE_KEY], activated: false });
+    mock.session[STATE_KEY]=state();
+    mock.update.mockRejectedValueOnce(new Error("tab missing"));
+    await expect(activateRun()).rejects.toThrow("tab missing");
+  });
 
   it("registers each browser listener once",async()=>{
     const mock=createChromeMock(); vi.stubGlobal("chrome",mock.chrome);
@@ -37,10 +55,15 @@ describe("service worker lifecycle",()=>{
 
   it("restores only a registered detached tab",async()=>{
     const mock=createChromeMock(); vi.stubGlobal("chrome",mock.chrome); mock.session[STATE_KEY]=state();
+    mock.tabs.set(11,{id:11,index:3,groupId:-1,windowId:2});
+    (mock.session[STATE_KEY] as ReturnType<typeof state>).orderedRoomIds=["entrance"];
     await import("./service-worker");
     mock.listeners.detached.listeners[0]!(11,{oldWindowId:1,oldPosition:0});
     await new Promise((resolve)=>setTimeout(resolve,0));
+    expect(mock.moved).toEqual([{ids:[11],index:0,windowId:1}]);
+    expect(mock.calls.slice(0,2)).toEqual(["move","group"]);
     expect(mock.grouped).toEqual([{ids:[11],groupId:7}]);
+    expect((mock.session[STATE_KEY] as ReturnType<typeof state>).orderedRoomIds).toEqual(["entrance"]);
   });
 
   it("closes only the registered room and rejects senderless gameplay",async()=>{
