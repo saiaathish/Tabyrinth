@@ -18,14 +18,16 @@ Factual record only. Add rows when the event exists in AO/GitHub. Do not infer o
 | 2026-08-12T06:57:09Z → 2026-08-12T06:57:10Z | `tabyrinth-21` | `UNRECORDED` | `UNRECORDED` | `UNRECORDED` | `UNRECORDED` | Session metadata verified; no PR outcome inferred. |
 | 2026-08-12T06:57:11Z → 2026-08-12T06:58:14Z | `tabyrinth-22` | `ao/tabyrinth-22/root` | Submission docs | `UNRECORDED` | `UNRECORDED` | `UNRECORDED` | Current docs-only worker; outcome recorded after commit/PR. |
 | 2026-08-12T06:57:13Z → `UNRECORDED` | `tabyrinth-23` | `UNRECORDED` | `UNRECORDED` | `UNRECORDED` | `UNRECORDED` | Active session metadata observed; end time unavailable. |
+| 2026-08-12T07:03:29Z | `UNRECORDED` | `UNRECORDED` | `UNRECORDED` | [#12](https://github.com/saiaathish/Tabyrinth/pull/12) | `verify`: success (2 completed checks) | PR merged 2026-08-12T07:03:29Z | GitHub PR metadata verified; AO session linkage unavailable. |
+| 2026-08-12T07:05:11Z | `UNRECORDED` | `UNRECORDED` | `UNRECORDED` | [#11](https://github.com/saiaathish/Tabyrinth/pull/11) | `verify`: success (2 completed checks) | PR merged 2026-08-12T07:05:11Z | GitHub PR metadata verified; AO session linkage unavailable. |
 
 ## Totals
 
 - Worker sessions recorded: `17` (`tabyrinth-5` through `tabyrinth-23`, excluding terminated `tabyrinth-2/3/4`)
 - Peak concurrent workers: `5` (sessions `tabyrinth-19/20/21/22/23`, based on AO created/last-activity timestamps)
 - Recorded worker span: `58m59s` (`tabyrinth-5` created 05:59:15Z through `tabyrinth-19` last activity 06:58:14Z; session `tabyrinth-23` end is `UNRECORDED`)
-- PRs opened in this record: `10` (#1–#10)
-- PRs merged in this record: `10` (#1–#10)
+- PRs opened in this record: `12` (#1–#12)
+- PRs merged in this record: `12` (#1–#12)
 - CI recovery events: `UNRECORDED`
 - Review recovery events: `UNRECORDED`
 - Build duration: `UNRECORDED`
@@ -39,6 +41,6 @@ OpenCode worker spawn was not completed. AO chat returned `INTERNAL_ERROR`; the 
 ## Integrated main checkpoint
 
 - Upstream `origin/main` fetched and merged into this worktree without reset/checkout.
-- Confirmed integrated commit: `9e82ec134f03d0b483fad47b0dce58e343fa2799`.
-- Local docs branch merge commit: `ccacb756f5c638cfe6550b9175e339684c028887`.
+- Confirmed integrated `origin/main` commit: `e730b52abd7a6ae4f7c69aad3a54e70e03023f3b`.
+- PR #12 merged 2026-08-12T07:03:29Z; PR #11 merged 2026-08-12T07:05:11Z. Both had green `verify` checks.
 - Real Chrome evidence: `UNVERIFIED`.

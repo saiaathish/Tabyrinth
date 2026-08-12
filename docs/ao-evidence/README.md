@@ -11,10 +11,10 @@ Suggested files:
 - `MANUAL_TEMPLATE.md` — real-browser critical-path record.
 
 Verified coordination records currently include AO sessions `tabyrinth-5` through
-`tabyrinth-23` where listed in `../AO_BUILD_LOG.md`. GitHub records show PRs #1–#10
+`tabyrinth-23` where listed in `../AO_BUILD_LOG.md`. GitHub records show PRs #1–#12
 merged; current CI/review details are listed in the build log. See
 `../AO_BUILD_LOG.md` for timestamps and branches. These records do not prove
-manual Chrome gameplay.
+manual Chrome gameplay. Current real-Chrome critical-path evidence remains `UNVERIFIED`.
 
 OpenCode spawn limitation: AO chat returned `INTERNAL_ERROR`, and the TUI path
 was unavailable because `tmux` was missing. No OpenCode worker is recorded.
