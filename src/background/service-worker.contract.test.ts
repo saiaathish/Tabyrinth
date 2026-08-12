@@ -70,6 +70,19 @@ describe("service worker security and lifecycle contracts", () => {
     expect(mock.update).not.toHaveBeenCalled();
   });
 
+  it("returns live state only to the popup or the registered room tab", async () => {
+    const mock = createChromeMock();
+    const initial = makeState();
+    mock.session[STATE_KEY] = initial;
+    vi.stubGlobal("chrome", mock.chrome);
+    const { handleMessage } = await import("./service-worker");
+
+    await expect(handleMessage({ type: "GET_STATE" }, { url: "chrome-extension://test/popup.html" } as chrome.runtime.MessageSender)).resolves.toEqual(initial);
+    await expect(handleMessage({ type: "GET_STATE" }, roomSender())).resolves.toEqual(initial);
+    await expect(handleMessage({ type: "GET_STATE" }, roomSender(999))).resolves.toBeNull();
+    await expect(handleMessage({ type: "GET_STATE" }, roomSender(11, "armory"))).resolves.toBeNull();
+  });
+
   it("activates the destination tab after a valid portal move", async () => {
     const mock = createChromeMock();
     mock.session[STATE_KEY] = makeState();

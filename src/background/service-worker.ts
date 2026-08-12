@@ -140,7 +140,11 @@ export function registerServiceWorkerListeners() {
 export async function handleMessage(value: unknown, sender: chrome.runtime.MessageSender) {
   const message = parseMessage(value);
   if (!message) return undefined;
-  if (message.type === "GET_STATE") return enqueueMutation(() => storage.get());
+  if (message.type === "GET_STATE") return enqueueMutation(async () => {
+    const state = await storage.get();
+    if (!state || isPopupSender(sender) || senderRoomId(state, sender)) return state;
+    return null;
+  });
   if (message.type === "START_RUN") return isPopupSender(sender) ? enqueueMutation(startRun) : undefined;
   if (message.type === "RESET_RUN") return isPopupSender(sender) ? enqueueMutation(async () => { await resetRun(); return null; }) : undefined;
   if (message.type === "ACTIVATE_RUN") return isPopupSender(sender) ? enqueueMutation(() => activateRun(message.roomId)) : undefined;
