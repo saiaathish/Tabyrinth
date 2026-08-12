@@ -55,11 +55,15 @@ describe("service worker lifecycle",()=>{
 
   it("restores only a registered detached tab",async()=>{
     const mock=createChromeMock(); vi.stubGlobal("chrome",mock.chrome); mock.session[STATE_KEY]=state();
+    mock.tabs.set(11,{id:11,index:3,groupId:-1,windowId:2});
+    (mock.session[STATE_KEY] as ReturnType<typeof state>).orderedRoomIds=["entrance"];
     await import("./service-worker");
     mock.listeners.detached.listeners[0]!(11,{oldWindowId:1,oldPosition:0});
     await new Promise((resolve)=>setTimeout(resolve,0));
     expect(mock.moved).toEqual([{ids:[11],index:0,windowId:1}]);
+    expect(mock.calls.slice(0,2)).toEqual(["move","group"]);
     expect(mock.grouped).toEqual([{ids:[11],groupId:7}]);
+    expect((mock.session[STATE_KEY] as ReturnType<typeof state>).orderedRoomIds).toEqual(["entrance"]);
   });
 
   it("closes only the registered room and rejects senderless gameplay",async()=>{
