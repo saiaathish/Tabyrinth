@@ -22,12 +22,19 @@ function intentMessage(intent: Intent, roomId: string, targetRoomId?: string): {
 }
 
 export function RoomPage({ state, error = false, onIntent }: { state: GameState | null; error?: boolean; onIntent?: (intent: Intent, roomId: string) => void }) {
+  const [resetting, setResetting] = React.useState(false);
+  const [resetError, setResetError] = React.useState("");
+  const reset = async () => {
+    setResetting(true); setResetError("");
+    try { await sendMessage({ type: "RESET_RUN" }); window.location.reload(); }
+    catch (value) { setResetError(value instanceof Error ? value.message : String(value)); setResetting(false); }
+  };
   const roomId = new URLSearchParams(location.search).get("room") ?? "";
   React.useEffect(() => { document.title = roomId === "void-rift" ? "VOID" : "TABYRINTH"; }, [roomId]);
   if (error) return <main className="room-state"><p className="eyebrow">TABYRINTH / SIGNAL LOST</p><h1>Room unavailable</h1><p>Runtime state could not be read. Keep this tab open and try again.</p></main>;
   if (!state) return <main className="room-state"><p className="eyebrow">TABYRINTH / LOADING</p><h1>Mapping the corridor…</h1><p>Waiting for the managed tab topology.</p></main>;
   const room = state.roomById[roomId];
-  if (!room || room.destroyed) return <main className="room-state"><p className="eyebrow">TABYRINTH / EMPTY</p><h1>Room unavailable</h1><p>This room has collapsed. Start a new run.</p><p>Open the TABYRINTH popup and choose Reset Run to safely clear owned tabs and begin again.</p></main>;
+  if (!room || room.destroyed) return <main className="room-state"><p className="eyebrow">TABYRINTH / EMPTY</p><h1>Room unavailable</h1><p>This room has collapsed. Start a new run.</p><button className="primary" onClick={() => void reset()} disabled={resetting}>{resetting ? "Resetting run..." : "Reset Run / Start New Run"}</button>{resetError && <p role="alert">Reset failed: {resetError}</p>}</main>;
   const index = state.orderedRoomIds.indexOf(roomId);
   const left = index > 0 ? state.orderedRoomIds[index - 1] : null;
   const right = index >= 0 && index < state.orderedRoomIds.length - 1 ? state.orderedRoomIds[index + 1] : null;
@@ -38,7 +45,7 @@ export function RoomPage({ state, error = false, onIntent }: { state: GameState 
   return <main className={`room-shell room-${room.kind}`}>
     <style>{css}</style>
     <header className="topbar"><span className="brand">TABYRINTH</span><span className="run-state">RUN {state.runId.slice(0, 8)} · {state.status.toUpperCase()}</span><span className="revision">SYNC {state.revision}</span></header>
-    <section className="hud" aria-label="Player status"><span><b>HP</b> <strong aria-label={`${state.player.hp} of ${state.player.maxHp} health`}>{"♥".repeat(state.player.hp)}<i>{"♥".repeat(state.player.maxHp - state.player.hp)}</i></strong></span><span><b>HELD</b> {state.player.hasBlade ? "Blade" : state.player.hasSigil ? "Sigil" : "—"}</span></section>
+    <section className="hud" aria-label="Player status"><span><b>HP</b> <meter min="0" max={state.player.maxHp} value={state.player.hp} aria-label={`${state.player.hp} of ${state.player.maxHp} health`}>{state.player.hp} / {state.player.maxHp}</meter></span><span><b>HELD</b> {state.player.hasBlade ? "Blade" : state.player.hasSigil ? "Sigil" : "—"}</span></section>
     <div className="layout">
       <nav className="portal portal-left" aria-label="Left portal"><button disabled={!left} onClick={() => left && send("move-left")} aria-label={left ? `Open portal to ${left}` : "No room to the left"}>← <span>{left ? labels[state.roomById[left].kind] : "No corridor"}</span></button></nav>
       <article className="scene" aria-labelledby="room-title"><div className="scene-mark" aria-hidden="true">{room.kind === "void" ? "//" : icon[room.kind]}</div><p className="eyebrow">ROOM {String(index + 1).padStart(2, "0")} / {room.kind.toUpperCase()}</p><h1 id="room-title">{labels[room.kind]}</h1><p className="flavor">{flavor[room.kind]}</p>{voidNotice}{room.kind === "boss" && !state.boss.voidActive && <p className="alert" role="status">{state.boss.shieldBroken ? "THE THRONE IS VULNERABLE." : "THE SIGIL CANNOT CROSS A BROKEN CORRIDOR."}</p>}{room.kind !== "void" && <button className="primary" onClick={() => send(action)}>{actionLabel[action]}</button>}</article>
