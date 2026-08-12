@@ -19,6 +19,8 @@ function App() {
   const [notice, setNotice] = React.useState("");
   const [confirmReset, setConfirmReset] = React.useState(false);
   const [onboardingSeen, setOnboardingSeen] = React.useState(false);
+  const resetTrigger = React.useRef<HTMLButtonElement>(null);
+  React.useEffect(() => { if (!confirmReset) return; const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") { setConfirmReset(false); resetTrigger.current?.focus(); } }; document.addEventListener("keydown", onKey); return () => document.removeEventListener("keydown", onKey); }, [confirmReset]);
 
   const load = React.useCallback(async () => {
     try { setRun(await sendMessage({ type: "GET_STATE" }) as GameState | null); setView("ready"); }
@@ -38,7 +40,7 @@ function App() {
   };
   const resume = async () => {
     setView("busy"); setNotice("");
-    try { await sendMessage({ type: "ACTIVATE_RUN", roomId: run?.player.currentRoomId }); setView("ready"); setNotice("Current room activated."); }
+    try { const result = await sendMessage({ type: "ACTIVATE_RUN", roomId: run?.player.currentRoomId }) as { activated: boolean }; if (!result.activated) throw new Error("Current room is unavailable. Reset Run to recover safely."); setView("ready"); setNotice("Current room activated."); }
     catch (error) { setNotice(`Resume failed: ${errorText(error)}`); setView("error"); }
   };
 
@@ -54,7 +56,7 @@ function App() {
       {run.status === "onboarding" && !onboardingSeen && <section className="card onboarding" aria-labelledby="how-title"><div className="step">FIRST DESCENT</div><h2 id="how-title">Your tabs are rooms.</h2><p>Drag a managed tab to change the dungeon’s corridors. Make one explicit move to wake the map.</p><div className="tab-demo" aria-label="Room order">{rooms.map((room) => <span key={room}>{room}</span>)}</div><button autoFocus onClick={() => setOnboardingSeen(true)}>Enter the dungeon</button></section>}
       {(onboardingSeen || run.status !== "onboarding") && <section className="card"><div className="step">{run.status === "victory" ? "DUNGEON CLEARED" : "RUN IN PROGRESS"}</div><h2>{run.status === "victory" ? "The rift is sealed." : "Keep moving."}</h2><p>{run.status === "victory" ? "The tab bar remembers your triumph." : "Reorder rooms. Close the Void. Change the world."}</p><div className="tab-demo" aria-label="Current room order">{rooms.map((room, i) => <span key={`${room}-${i}`}>{room}</span>)}</div>{run.status === "victory" && <dl><div><dt>Tab shifts</dt><dd>{run.metrics.tabMoves}</dd></div><div><dt>Rooms closed</dt><dd>{run.metrics.roomsClosed}</dd></div></dl>}<button onClick={() => window.close()}>Close dungeon</button></section>}
       {run.status !== "victory" && <button className="resume-button" onClick={() => void resume()} disabled={busy}>Resume Run</button>}
-      <button className="reset-link" onClick={() => setConfirmReset(true)} disabled={busy}>Reset Run</button>
+      <button ref={resetTrigger} className="reset-link" onClick={() => setConfirmReset(true)} disabled={busy}>Reset Run</button>
       {confirmReset && <div className="confirm" role="dialog" aria-modal="true" aria-labelledby="reset-title"><h2 id="reset-title">Close this run?</h2><p>Only TABYRINTH-owned tabs will close.</p><button autoFocus onClick={() => void reset}>Reset run</button><button className="quiet" onClick={() => setConfirmReset(false)}>Keep playing</button></div>}
     </>}
     {notice && view !== "error" && <p className="notice" role="status">{notice}</p>}

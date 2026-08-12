@@ -24,12 +24,13 @@ export async function startRun(): Promise<GameState> {
   assertGameState(orderedState); await storage.set(orderedState); return orderedState;
 }
 
-export async function activateRun(roomId?: string): Promise<GameState | null> {
+export async function activateRun(roomId?: string): Promise<{ state: GameState | null; activated: boolean }> {
   const state = await storage.get();
-  if (!state) return null;
+  if (!state) return { state: null, activated: false };
   const target = roomId && state.roomById[roomId] ? state.roomById[roomId] : state.roomById[state.player.currentRoomId];
-  if (target && !target.destroyed) await tabsAdapter.update(target.tabId, { active: true });
-  return state;
+  if (!target || target.destroyed) return { state, activated: false };
+  await tabsAdapter.update(target.tabId, { active: true });
+  return { state, activated: true };
 }
 
 export async function syncTopology(): Promise<GameState | null> {

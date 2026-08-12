@@ -13,7 +13,7 @@ function intentMessage(intent: Intent, roomId: string, targetRoomId?: string): {
   if (intent === "move-left" || intent === "move-right" || intent === "enter") return { type: "GAME_ACTION", action: { type: "MOVE_PLAYER", payload: { toRoomId: targetRoomId ?? roomId } } };
   const actions: Record<Exclude<Intent, "move-left" | "move-right" | "enter">, GameAction> = {
     "take-blade": { type: "TAKE_BLADE" },
-    restore: { type: "MOVE_PLAYER", payload: { toRoomId: roomId } },
+    restore: { type: "RESTORE_HEALTH" },
     "take-sigil": { type: "TAKE_SIGIL" },
     "break-seal": { type: "BREAK_SEAL" },
     attack: { type: "ATTACK_BOSS" },
