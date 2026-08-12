@@ -1,11 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createChromeMock } from "../test/mocks/chrome";
 import { STATE_KEY } from "../platform/chrome-storage";
+import { activateRun } from "./run-controller";
 
 const state = (tabId=11) => ({ schemaVersion:1 as const, runId:"run", status:"active" as const, groupId:7, windowId:1, roomById:{entrance:{roomId:"entrance",kind:"entrance" as const,tabId,visited:true,destroyed:false,completed:false}}, roomIdByTabId:{[String(tabId)]:"entrance"}, orderedRoomIds:["entrance"], player:{hp:3,maxHp:3,hasBlade:false,hasSigil:false,currentRoomId:"entrance"}, boss:{hp:3,maxHp:3,shieldBroken:false,voidActive:false,voidRoomId:null}, flags:{tutorialMoveCompleted:false,sigilAdjacencySatisfied:false,bossIntroduced:false}, metrics:{startedAt:1,endedAt:null,tabMoves:0,roomsClosed:0,actions:0}, revision:0 });
 
 describe("service worker lifecycle",()=>{
   beforeEach(()=>vi.resetModules());
+
+  it("returns truthful activation results", async()=>{
+    const mock=createChromeMock(); vi.stubGlobal("chrome",mock.chrome); mock.session[STATE_KEY]=state();
+    expect((await activateRun("entrance")).activated).toBe(true);
+    expect(mock.updated).toHaveLength(1);
+    (mock.session[STATE_KEY] as ReturnType<typeof state>).roomById.entrance.destroyed=true;
+    expect((await activateRun("entrance")).activated).toBe(false);
+    expect((await activateRun("missing")).activated).toBe(false);
+    mock.chrome.tabs.update=async()=>{throw new Error("closed")};
+    (mock.session[STATE_KEY] as ReturnType<typeof state>).roomById.entrance.destroyed=false;
+    expect((await activateRun("entrance")).activated).toBe(false);
+  });
 
   it("registers each browser listener once",async()=>{
     const mock=createChromeMock(); vi.stubGlobal("chrome",mock.chrome);
@@ -40,6 +53,7 @@ describe("service worker lifecycle",()=>{
     await import("./service-worker");
     mock.listeners.detached.listeners[0]!(11,{oldWindowId:1,oldPosition:0});
     await new Promise((resolve)=>setTimeout(resolve,0));
+    expect(mock.moved).toEqual([{ids:[11],index:0,windowId:1}]);
     expect(mock.grouped).toEqual([{ids:[11],groupId:7}]);
   });
 

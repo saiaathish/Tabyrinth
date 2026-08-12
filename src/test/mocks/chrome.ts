@@ -11,9 +11,11 @@ export function createChromeMock() {
   const session: Record<string, unknown> = {};
   const removed:number[][]=[];
   const grouped:{ids:number[];groupId?:number}[]=[];
+  const updated:{id:number;info:unknown}[]=[];
+  const moved:{ids:number[];index:number;windowId?:number}[]=[];
   const chromeMock = { storage: { session: { get: async (key:string) => ({[key]: session[key]}), set: async (value:Record<string,unknown>) => Object.assign(session,value), remove: async (key:string) => delete session[key] } },
     runtime: { getURL:(path:string)=>`chrome-extension://test/${path}`, onMessage:event<(message:unknown,sender:chrome.runtime.MessageSender,sendResponse:(value:unknown)=>void)=>boolean>() },
-    tabs: { onMoved:listeners.moved, onRemoved:listeners.removed, onDetached:listeners.detached, onAttached:listeners.attached, onUpdated:listeners.updated, query: async () => [...tabs.values()], get: async (id:number)=>tabs.get(id), create:async()=>({id:Date.now(),index:tabs.size,windowId:1}), group:async({tabIds,groupId}:{tabIds:[number,...number[]],groupId?:number})=>{grouped.push({ids:[...tabIds],groupId});return groupId??1}, move:async()=>[], remove:async(ids:number[])=>{removed.push(ids)}, update:async()=>undefined },
+    tabs: { onMoved:listeners.moved, onRemoved:listeners.removed, onDetached:listeners.detached, onAttached:listeners.attached, onUpdated:listeners.updated, query: async () => [...tabs.values()], get: async (id:number)=>tabs.get(id), create:async()=>({id:Date.now(),index:tabs.size,windowId:1}), group:async({tabIds,groupId}:{tabIds:[number,...number[]],groupId?:number})=>{grouped.push({ids:[...tabIds],groupId});return groupId??1}, move:async(tabIds:number[],options:{index:number;windowId?:number})=>{moved.push({ids:[...tabIds],...options});return []}, remove:async(ids:number[])=>{removed.push(ids)}, update:async(id:number,info:unknown)=>{updated.push({id,info});return undefined} },
     tabGroups: { update: async () => undefined } };
-  return { tabs, session, removed, grouped, listeners, chrome:chromeMock };
+  return { tabs, session, removed, grouped, updated, moved, listeners, chrome:chromeMock };
 }
