@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { reduceGame } from "./reducer";
+import { assertGameState } from "./invariants";
+import { canBreakBossSeal, canMoveTo, getRoomNeighbors } from "./selectors";
 import type { GameState } from "./types";
 
 const makeState = (order = ["entrance", "armory", "sanctum", "vault", "boss"]): GameState => ({ schemaVersion: 1, runId: "test", status: "active", groupId: 1, windowId: 1, roomById: Object.fromEntries(order.map((roomId, tabId) => [roomId, { roomId, kind: roomId as GameState["roomById"][string]["kind"], tabId, visited: roomId === "entrance", destroyed: false, completed: false }])), roomIdByTabId: Object.fromEntries(order.map((roomId, tabId) => [String(tabId), roomId])), orderedRoomIds: order, player: { hp: 1, maxHp: 3, hasBlade: false, hasSigil: false, currentRoomId: "entrance" }, boss: { hp: 2, maxHp: 2, shieldBroken: false, voidActive: false, voidRoomId: null }, flags: { tutorialMoveCompleted: false, sigilAdjacencySatisfied: false, bossIntroduced: false }, metrics: { startedAt: 0, endedAt: null, tabMoves: 0, roomsClosed: 0, actions: 0 }, revision: 0 });
@@ -43,5 +45,16 @@ describe("pure gameplay loop", () => {
     expect(reduceGame(state, { type: "BREAK_SEAL" })).toBe(state);
     expect(reduceGame(state, { type: "RUN_VICTORY" })).toBe(state);
     expect(reduceGame(state, { type: "VOID_CLOSED" })).toBe(state);
+  });
+
+  it("keeps selectors and invariants aligned with managed topology", () => {
+    const state = makeState();
+    expect(getRoomNeighbors(state, "sanctum")).toEqual({ left: "armory", right: "vault" });
+    expect(canMoveTo(state, "armory")).toBe(true);
+    expect(canMoveTo(state, "boss")).toBe(false);
+    expect(canBreakBossSeal(state)).toBe(false);
+    expect(() => assertGameState(state)).not.toThrow();
+    expect(() => assertGameState({ ...state, orderedRoomIds: ["entrance", "entrance"] })).toThrow("invalid topology");
+    expect(() => assertGameState({ ...state, boss: { ...state.boss, hp: 3 } })).toThrow("invalid boss hp");
   });
 });
