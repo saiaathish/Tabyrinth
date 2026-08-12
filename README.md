@@ -4,7 +4,9 @@ TABYRINTH turns your real Chrome tab strip into a dungeon: every managed tab is 
 
 ## Current state
 
-The integrated `main` history is current through commit `e730b52` ([PR #11](https://github.com/saiaathish/Tabyrinth/pull/11)), with [PR #12](https://github.com/saiaathish/Tabyrinth/pull/12) also merged. Both PRs have green `verify` checks. The complete judge path (real Chrome tab reorder, Vault/Boss puzzle, VOID tab, and victory) remains **UNVERIFIED** because no direct real-Chrome critical-path run is recorded. Do not present those behaviors as browser-proven until direct Chrome evidence exists.
+Final checkpoint: `bc8f0b59c74b6b054847afeb924eb1b4d7cdd921` ([PR #14](https://github.com/saiaathish/Tabyrinth/pull/14), merged 2026-08-12T07:58:54Z). PR #16 merged at `ab16c1c9b0bb58505357b311f9983be561e1d1b5`; both had two successful `verify` checks. Final Chrome critical path remains **UNVERIFIED**.
+
+The complete judge path (real Chrome tab reorder, Vault/Boss puzzle, VOID tab, and victory) remains **UNVERIFIED** because no direct real-Chrome critical-path run is recorded. Do not present those behaviors as browser-proven until direct Chrome evidence exists.
 
 ## Load the extension locally
 
@@ -59,4 +61,4 @@ See [docs/CI_CONTRACT.md](docs/CI_CONTRACT.md) for the CI contract and [docs/DEM
 
 ## AO build evidence
 
-AO evidence is append-only and factual. Current records cover AO sessions `tabyrinth-5` through `tabyrinth-33` where metadata exists, merged PRs #1 and #6–#13 plus #15–#16; PR #14 remains open pending review. CI outcomes are listed in [docs/AO_BUILD_LOG.md](docs/AO_BUILD_LOG.md). Two attempted AO OpenCode spawns returned `INTERNAL_ERROR`; no OpenCode session, branch, PR, or result exists. Never fill an example with invented events.
+AO evidence is append-only and factual. Current records cover AO sessions `tabyrinth-5` through `tabyrinth-37` where metadata exists, and recorded PRs #1–#16; all 16 recorded PRs are merged. CI outcomes are listed in [docs/AO_BUILD_LOG.md](docs/AO_BUILD_LOG.md). Two attempted AO OpenCode spawns returned `INTERNAL_ERROR`; no OpenCode session, branch, PR, or result exists. Final Chrome critical path remains **UNVERIFIED**.
