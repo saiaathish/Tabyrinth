@@ -4,7 +4,7 @@ TABYRINTH turns your real Chrome tab strip into a dungeon: every managed tab is 
 
 ## Current state
 
-Published `main` is `625eef238ae7f6dac11193665527e086d5e47225` ([PR #17](https://github.com/saiaathish/Tabyrinth/pull/17), merged 2026-08-12T08:25:20Z, two successful `verify` checks). [PR #18](https://github.com/saiaathish/Tabyrinth/pull/18) is open at head `446d938c167640b08e4316207fae5d67764868d4` with two successful `verify` checks and no GitHub reviews. This local branch is `codex/prd-completion` at `3159f1e`, a clean checkpoint integrating PR #18 plus PRD-completion hardening. Final Chrome critical path remains **UNVERIFIED**.
+Published `main` is `625eef238ae7f6dac11193665527e086d5e47225` ([PR #17](https://github.com/saiaathish/Tabyrinth/pull/17), merged 2026-08-12T08:25:20Z, two successful `verify` checks). [PR #18](https://github.com/saiaathish/Tabyrinth/pull/18) is open at head `446d938c167640b08e4316207fae5d67764868d4` with two successful `verify` checks and no GitHub reviews. This local branch is `codex/prd-completion` at `5b9f753`, a clean checkpoint integrating PR #18 plus PRD-completion hardening. Final Chrome critical path remains **UNVERIFIED**.
 
 The complete judge path (real Chrome tab reorder, Vault/Boss puzzle, VOID tab, and victory) remains **UNVERIFIED** because no direct real-Chrome critical-path run is recorded. Do not present those behaviors as browser-proven until direct Chrome evidence exists.
 
