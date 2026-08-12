@@ -1,16 +1,23 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { sendMessage } from "../../platform/chrome-messaging";
-import type { GameState, RoomKind } from "../../game/types";
+import type { GameAction, GameState, RoomKind } from "../../game/types";
 
 type Intent = "enter" | "take-blade" | "restore" | "take-sigil" | "break-seal" | "attack" | "move-left" | "move-right";
 const labels: Record<RoomKind, string> = { entrance: "The Threshold", armory: "The Armory", sanctum: "The Sanctum", vault: "The Vault", boss: "The Throne", void: "The Void Rift" };
 const flavor: Record<RoomKind, string> = { entrance: "A quiet threshold. The tab bar is your corridor.", armory: "Old steel waits beneath a skin of dust.", sanctum: "A low, warm pulse answers your footsteps.", vault: "The sigil hums toward the throne.", boss: "The throne watches from beyond the broken seal.", void: "A cold seam has opened in the tab bar." };
 const icon: Record<RoomKind, string> = { entrance: "✦", armory: "⌁", sanctum: "◉", vault: "⬡", boss: "♛", void: "∅" };
 
-function intentMessage(intent: Intent, roomId: string) {
-  if (intent === "move-left" || intent === "move-right") return { type: "ROOM_ACTION", action: intent, roomId };
-  return { type: "ROOM_ACTION", action: intent, roomId };
+function intentMessage(intent: Intent, roomId: string, targetRoomId?: string): { type: "GAME_ACTION"; action: GameAction } {
+  if (intent === "move-left" || intent === "move-right" || intent === "enter") return { type: "GAME_ACTION", action: { type: "MOVE_PLAYER", payload: { toRoomId: targetRoomId ?? roomId } } };
+  const actions: Record<Exclude<Intent, "move-left" | "move-right" | "enter">, GameAction> = {
+    "take-blade": { type: "TAKE_BLADE" },
+    restore: { type: "MOVE_PLAYER", payload: { toRoomId: roomId } },
+    "take-sigil": { type: "TAKE_SIGIL" },
+    "break-seal": { type: "BREAK_SEAL" },
+    attack: { type: "ATTACK_BOSS" },
+  };
+  return { type: "GAME_ACTION", action: actions[intent] };
 }
 
 export function RoomPage({ state, error = false, onIntent }: { state: GameState | null; error?: boolean; onIntent?: (intent: Intent, roomId: string) => void }) {
@@ -22,7 +29,7 @@ export function RoomPage({ state, error = false, onIntent }: { state: GameState 
   const index = state.orderedRoomIds.indexOf(roomId);
   const left = index > 0 ? state.orderedRoomIds[index - 1] : null;
   const right = index >= 0 && index < state.orderedRoomIds.length - 1 ? state.orderedRoomIds[index + 1] : null;
-  const send = (intent: Intent) => { onIntent?.(intent, roomId); void sendMessage(intentMessage(intent, roomId) as never); };
+  const send = (intent: Intent) => { onIntent?.(intent, roomId); const target = intent === "move-left" ? left ?? undefined : intent === "move-right" ? right ?? undefined : undefined; void sendMessage(intentMessage(intent, roomId, target)); };
   const action = room.kind === "entrance" ? "enter" : room.kind === "armory" ? "take-blade" : room.kind === "sanctum" ? "restore" : room.kind === "vault" ? "take-sigil" : room.kind === "boss" ? (state.boss.shieldBroken ? "attack" : "break-seal") : "enter";
   const actionLabel: Record<string, string> = { enter: "Enter the dungeon", "take-blade": "Take the Blade", restore: "Restore health", "take-sigil": "Take the Sigil", "break-seal": "Break the Seal", attack: "Attack the Throne" };
   return <main className={`room-shell room-${room.kind}`}>
