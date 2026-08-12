@@ -36,6 +36,11 @@ function App() {
     try { await sendMessage({ type: "RESET_RUN" }); setRun(null); setView("ready"); }
     catch (error) { setNotice(`Reset failed: ${errorText(error)}`); setView("error"); }
   };
+  const resume = async () => {
+    setView("busy"); setNotice("");
+    try { await sendMessage({ type: "ACTIVATE_RUN", roomId: run?.player.currentRoomId }); setView("ready"); setNotice("Current room activated."); }
+    catch (error) { setNotice(`Resume failed: ${errorText(error)}`); setView("error"); }
+  };
 
   const busy = view === "busy";
   const rooms = run?.orderedRoomIds.map((id) => roomNames[id] ?? id) ?? [];
@@ -44,11 +49,12 @@ function App() {
     <header><div className="eyebrow">CHROME // DUNGEON PROTOCOL</div><h1>TABYRINTH</h1><p>The dungeon lives in your tab bar.</p></header>
     {view === "loading" && <p role="status" className="status">Reading the dungeon...</p>}
     {view === "error" && <section className="card danger" role="alert"><strong>Dungeon connection lost</strong><p>{notice}</p><button onClick={() => void load}>Try again</button><button className="quiet" onClick={() => void reset}>Start clean</button></section>}
-    {view !== "loading" && view !== "error" && !run && <section className="card"><div className="sigil">✦</div><h2>Ready to descend?</h2><p>Five real tabs become five rooms. Your browser is the board.</p><button autoFocus disabled={busy} onClick={() => void start}>{busy ? "Opening rooms..." : "Start Run"}</button><small>~3 minutes · no account · no internet</small></section>}
+    {view !== "loading" && view !== "error" && !run && <section className="card"><div className="sigil" aria-hidden="true">//</div><h2>Ready to descend?</h2><p>Five real tabs become five rooms. Your browser is the board.</p><button autoFocus disabled={busy} onClick={() => void start}>{busy ? "Opening rooms..." : "Start Run"}</button><small>~3 minutes · no account · no internet</small></section>}
     {run && <>
       {run.status === "onboarding" && !onboardingSeen && <section className="card onboarding" aria-labelledby="how-title"><div className="step">FIRST DESCENT</div><h2 id="how-title">Your tabs are rooms.</h2><p>Drag a managed tab to change the dungeon’s corridors. Make one explicit move to wake the map.</p><div className="tab-demo" aria-label="Room order">{rooms.map((room) => <span key={room}>{room}</span>)}</div><button autoFocus onClick={() => setOnboardingSeen(true)}>Enter the dungeon</button></section>}
       {(onboardingSeen || run.status !== "onboarding") && <section className="card"><div className="step">{run.status === "victory" ? "DUNGEON CLEARED" : "RUN IN PROGRESS"}</div><h2>{run.status === "victory" ? "The rift is sealed." : "Keep moving."}</h2><p>{run.status === "victory" ? "The tab bar remembers your triumph." : "Reorder rooms. Close the Void. Change the world."}</p><div className="tab-demo" aria-label="Current room order">{rooms.map((room, i) => <span key={`${room}-${i}`}>{room}</span>)}</div>{run.status === "victory" && <dl><div><dt>Tab shifts</dt><dd>{run.metrics.tabMoves}</dd></div><div><dt>Rooms closed</dt><dd>{run.metrics.roomsClosed}</dd></div></dl>}<button onClick={() => window.close()}>Close dungeon</button></section>}
-      <button className="reset-link" onClick={() => setConfirmReset(true)} disabled={busy}>Reset / replay</button>
+      {run.status !== "victory" && <button className="resume-button" onClick={() => void resume()} disabled={busy}>Resume Run</button>}
+      <button className="reset-link" onClick={() => setConfirmReset(true)} disabled={busy}>Reset Run</button>
       {confirmReset && <div className="confirm" role="dialog" aria-modal="true" aria-labelledby="reset-title"><h2 id="reset-title">Close this run?</h2><p>Only TABYRINTH-owned tabs will close.</p><button autoFocus onClick={() => void reset}>Reset run</button><button className="quiet" onClick={() => setConfirmReset(false)}>Keep playing</button></div>}
     </>}
     {notice && view !== "error" && <p className="notice" role="status">{notice}</p>}
