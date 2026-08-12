@@ -7,6 +7,19 @@ import type { GameState } from "./types";
 const makeState = (order = ["entrance", "armory", "sanctum", "vault", "boss"]): GameState => ({ schemaVersion: 1, runId: "test", status: "active", groupId: 1, windowId: 1, roomById: Object.fromEntries(order.map((roomId, tabId) => [roomId, { roomId, kind: roomId as GameState["roomById"][string]["kind"], tabId, visited: roomId === "entrance", destroyed: false, completed: false }])), roomIdByTabId: Object.fromEntries(order.map((roomId, tabId) => [String(tabId), roomId])), orderedRoomIds: order, player: { hp: 1, maxHp: 3, hasBlade: false, hasSigil: false, currentRoomId: "entrance" }, boss: { hp: 2, maxHp: 2, shieldBroken: false, voidActive: false, voidRoomId: null }, flags: { tutorialMoveCompleted: false, sigilAdjacencySatisfied: false, bossIntroduced: false }, metrics: { startedAt: 0, endedAt: null, tabMoves: 0, roomsClosed: 0, actions: 0 }, revision: 0 });
 
 describe("pure gameplay loop", () => {
+  it("starts onboarding on the first complete topology action", () => {
+    const onboarding = { ...makeState(), status: "onboarding" as const };
+    const next = reduceGame(onboarding, { type: "TAB_TOPOLOGY_SYNC", payload: { orderedRoomIds: ["entrance", "armory", "vault", "sanctum", "boss"] } });
+    expect(next.status).toBe("active");
+    expect(next.orderedRoomIds).toEqual(["entrance", "armory", "vault", "sanctum", "boss"]);
+    expect(next.flags.tutorialMoveCompleted).toBe(true);
+  });
+
+  it("rejects topology sync that drops a live room", () => {
+    const state = makeState();
+    expect(reduceGame(state, { type: "TAB_TOPOLOGY_SYNC", payload: { orderedRoomIds: ["entrance", "armory", "boss"] } })).toBe(state);
+  });
+
   it("moves only to adjacent rooms and grants Armory/Vault items", () => {
     let state = makeState();
     expect(reduceGame(state, { type: "MOVE_PLAYER", payload: { toRoomId: "vault" } })).toBe(state);
@@ -56,5 +69,12 @@ describe("pure gameplay loop", () => {
     expect(() => assertGameState(state)).not.toThrow();
     expect(() => assertGameState({ ...state, orderedRoomIds: ["entrance", "entrance"] })).toThrow("invalid topology");
     expect(() => assertGameState({ ...state, boss: { ...state.boss, hp: 3 } })).toThrow("invalid boss hp");
+  });
+
+  it("keeps invariants valid when the current room is destroyed", () => {
+    const state = makeState();
+    const next = reduceGame(state, { type: "ROOM_CLOSED", payload: { roomId: "entrance" } });
+    expect(next.player.currentRoomId).toBe("armory");
+    expect(() => assertGameState(next)).not.toThrow();
   });
 });

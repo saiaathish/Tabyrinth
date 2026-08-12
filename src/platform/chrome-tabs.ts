@@ -7,5 +7,5 @@ export const tabsAdapter={
   updateGroup:(groupId:number,title:string)=>chrome.tabGroups.update(groupId,{title,color:"green"}),
   move:(tabIds:number[],index:number)=>chrome.tabs.move(tabIds,{index}),
   remove:(ids:number[])=>chrome.tabs.remove(ids),
-  update:(id:number,info:chrome.tabs.UpdateProperties)=>chrome.tabs.update(id,info),
+  update:(id:number,info:chrome.tabs.UpdateProperties & {title?:string})=>chrome.tabs.update(id,info as unknown as chrome.tabs.UpdateProperties),
 };

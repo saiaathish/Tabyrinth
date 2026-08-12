@@ -36,6 +36,21 @@ export async function restoreManagedTab(tabId:number): Promise<boolean> {
   try { await tabsAdapter.group([tabId],state.groupId); return true; } catch { return false; }
 }
 
+export async function spawnVoid(state: GameState): Promise<GameState> {
+  if (state.boss.voidActive || state.boss.voidRoomId) return state;
+  const boss = state.roomById[state.orderedRoomIds.find((id) => state.roomById[id]?.kind === "boss") ?? ""];
+  const url = chrome.runtime.getURL(`room.html?run=${state.runId}&room=void-rift`);
+  const created = await tabsAdapter.create(url);
+  await tabsAdapter.update(created.id, { pinned: false, active: false });
+  if (boss) {
+    const bossTab = await tabsAdapter.get(boss.tabId);
+    await tabsAdapter.move([created.id], (bossTab.index ?? 0) + 1);
+  }
+  await tabsAdapter.group([created.id], state.groupId ?? undefined);
+  const next = reduceGame(state, { type: "VOID_SPAWNED", payload: { roomId: "void-rift", tabId: created.id } });
+  assertGameState(next); await storage.set(next); return next;
+}
+
 export async function resetRun(): Promise<void> {
   const state = await storage.get(); if (!state) return;
   const ids = Object.values(state.roomById).filter((room) => !room.destroyed).map((room) => room.tabId);
