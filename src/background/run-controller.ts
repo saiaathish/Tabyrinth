@@ -54,5 +54,6 @@ export async function spawnVoid(state: GameState): Promise<GameState> {
 export async function resetRun(): Promise<void> {
   const state = await storage.get(); if (!state) return;
   const ids = Object.values(state.roomById).filter((room) => !room.destroyed).map((room) => room.tabId);
-  if (ids.length) await tabsAdapter.remove(ids); await storage.clear();
+  await storage.clear();
+  if (ids.length) await tabsAdapter.remove(ids);
 }
