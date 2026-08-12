@@ -33,8 +33,10 @@ export async function startRun(): Promise<GameState> {
     if (!await activateRoomTab(orderedState, "entrance")) throw new Error("Entrance tab is unavailable");
     return orderedState;
   } catch (error) {
-    const persisted = await storage.get();
-    if (persisted?.runId === runId) await storage.clear();
+    try {
+      const persisted = await storage.get();
+      if (persisted?.runId === runId) await storage.clear();
+    } catch { /* Tab cleanup must still run and the original failure must win. */ }
     if (createdIds.length) await tabsAdapter.remove(createdIds).catch(() => undefined);
     throw error;
   }

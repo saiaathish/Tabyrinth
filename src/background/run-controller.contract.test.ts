@@ -70,6 +70,31 @@ describe("run controller contract", () => {
     expect(mock.session[STATE_KEY]).toBeUndefined();
   });
 
+  it("still removes created rooms when rollback storage reads fail", async () => {
+    const mock = createChromeMock();
+    const get = mock.chrome.storage.session.get;
+    mock.chrome.storage.session.get = vi.fn()
+      .mockImplementationOnce(get)
+      .mockRejectedValueOnce(new Error("rollback read failed"));
+    mock.update.mockRejectedValueOnce(new Error("activation failed"));
+    vi.stubGlobal("chrome", mock.chrome);
+
+    await expect(startRun()).rejects.toThrow("activation failed");
+    expect(mock.removed).toHaveLength(1);
+    expect(mock.removed[0]).toHaveLength(5);
+  });
+
+  it("still removes created rooms when rollback storage clears fail", async () => {
+    const mock = createChromeMock();
+    mock.chrome.storage.session.remove = vi.fn().mockRejectedValueOnce(new Error("rollback clear failed"));
+    mock.update.mockRejectedValueOnce(new Error("activation failed"));
+    vi.stubGlobal("chrome", mock.chrome);
+
+    await expect(startRun()).rejects.toThrow("activation failed");
+    expect(mock.removed).toHaveLength(1);
+    expect(mock.removed[0]).toHaveLength(5);
+  });
+
   it("syncs topology for Chrome group id zero", async () => {
     const mock = createChromeMock();
     const state: GameState = {

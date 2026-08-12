@@ -119,8 +119,17 @@ async function handleGameAction(message: Extract<Message, { type: "GAME_ACTION" 
   const next = reduceGame(state, message.action);
   if (next === state) return { error: "The dungeon rejected that action." };
   if (message.action.type === "BREAK_SEAL" && next !== state && next.boss.shieldBroken) return spawnVoid(next);
-  if (message.action.type === "MOVE_PLAYER") await activateRoomTab(next);
-  await storage.set(next);
+  if (message.action.type === "MOVE_PLAYER") {
+    await activateRoomTab(next);
+    try {
+      await storage.set(next);
+    } catch (error) {
+      await activateRoomTab(state).catch(() => false);
+      throw error;
+    }
+  } else {
+    await storage.set(next);
+  }
   return next;
 }
 
