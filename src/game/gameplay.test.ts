@@ -33,13 +33,16 @@ describe("pure gameplay loop", () => {
     expect(state.player.hasSigil).toBe(true);
   });
 
-  it("breaks seal, blocks attacks during Void, then wins on final hit", () => {
-    let state = makeState();
+  it("runs onboarding through items, boss, Void gating, and victory", () => {
+    let state: GameState = { ...makeState(), status: "onboarding" };
+    state = reduceGame(state, { type: "TAB_TOPOLOGY_SYNC", payload: { orderedRoomIds: ["entrance", "armory", "vault", "sanctum", "boss"] } });
+    expect(state.status).toBe("active");
     state = reduceGame(state, { type: "MOVE_PLAYER", payload: { toRoomId: "armory" } });
     state = reduceGame(state, { type: "TAKE_BLADE" });
     state = reduceGame(state, { type: "MOVE_PLAYER", payload: { toRoomId: "sanctum" } });
     state = reduceGame(state, { type: "MOVE_PLAYER", payload: { toRoomId: "vault" } });
     state = reduceGame(state, { type: "TAKE_SIGIL" });
+    state = reduceGame(state, { type: "TAB_TOPOLOGY_SYNC", payload: { orderedRoomIds: ["entrance", "armory", "sanctum", "vault", "boss"] } });
     state = reduceGame(state, { type: "MOVE_PLAYER", payload: { toRoomId: "boss" } });
     state = reduceGame(state, { type: "BREAK_SEAL" });
     expect(state.boss.shieldBroken).toBe(true);
