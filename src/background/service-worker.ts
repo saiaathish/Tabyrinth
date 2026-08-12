@@ -41,7 +41,7 @@ export async function handleMessage(message:Message, sender:chrome.runtime.Messa
   if(message.type==="RESET_RUN") { await resetRun(); return null; }
   if(message.type==="GAME_ACTION") {
     const state=await storage.get();
-    if(!state || (sender.tab?.id!==undefined && state.roomIdByTabId[String(sender.tab.id)]===undefined)) return state;
+    if(!state || sender.tab?.id===undefined || state.roomIdByTabId[String(sender.tab.id)]===undefined) return state;
     const next=reduceGame(state,message.action as GameAction); await storage.set(next); return next;
   }
 }

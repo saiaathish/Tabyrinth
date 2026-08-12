@@ -21,4 +21,36 @@ describe("service worker lifecycle",()=>{
     expect(result).toEqual(mock.session[STATE_KEY]);
     expect(mock.session[STATE_KEY]).toEqual(state());
   });
+
+  it("ignores every lifecycle event for an unrelated tab",async()=>{
+    const mock=createChromeMock(); vi.stubGlobal("chrome",mock.chrome); mock.session[STATE_KEY]=state();
+    await import("./service-worker");
+    mock.listeners.moved.listeners[0]!(999);
+    mock.listeners.removed.listeners[0]!(999);
+    mock.listeners.detached.listeners[0]!(999,{oldWindowId:1,oldPosition:0});
+    mock.listeners.attached.listeners[0]!(999,{newWindowId:2,newPosition:0});
+    mock.listeners.updated.listeners[0]!(999,{},{} as chrome.tabs.Tab);
+    await new Promise((resolve)=>setTimeout(resolve,70));
+    expect(mock.session[STATE_KEY]).toEqual(state());
+    expect(mock.grouped).toEqual([]);
+  });
+
+  it("restores only a registered detached tab",async()=>{
+    const mock=createChromeMock(); vi.stubGlobal("chrome",mock.chrome); mock.session[STATE_KEY]=state();
+    await import("./service-worker");
+    mock.listeners.detached.listeners[0]!(11,{oldWindowId:1,oldPosition:0});
+    await new Promise((resolve)=>setTimeout(resolve,0));
+    expect(mock.grouped).toEqual([{ids:[11],groupId:7}]);
+  });
+
+  it("closes only the registered room and rejects senderless gameplay",async()=>{
+    const mock=createChromeMock(); vi.stubGlobal("chrome",mock.chrome); mock.session[STATE_KEY]=state();
+    const worker=await import("./service-worker");
+    mock.listeners.removed.listeners[0]!(11);
+    await new Promise((resolve)=>setTimeout(resolve,0));
+    expect((mock.session[STATE_KEY] as ReturnType<typeof state>).roomById.entrance.destroyed).toBe(true);
+    mock.session[STATE_KEY]=state();
+    await worker.handleMessage({type:"GAME_ACTION",action:{type:"RUN_RESET"}},{} as chrome.runtime.MessageSender);
+    expect(mock.session[STATE_KEY]).toEqual(state());
+  });
 });
