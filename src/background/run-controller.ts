@@ -30,4 +30,14 @@ export async function syncTopology(): Promise<GameState | null> {
   const next = reduceGame(state, { type: "TAB_TOPOLOGY_SYNC", payload: { orderedRoomIds: ordered } }); assertGameState(next); if (next !== state) await storage.set(next); return next;
 }
 
-export async function resetRun(): Promise<void> { const state = await storage.get(); if (!state) return; const ids = Object.values(state.roomById).filter((room) => !room.destroyed).map((room) => room.tabId); if (ids.length) await tabsAdapter.remove(ids); await storage.clear(); }
+export async function restoreManagedTab(tabId:number): Promise<boolean> {
+  const state=await storage.get(); const room=state?.roomIdByTabId[String(tabId)];
+  if(!state||!room||state.groupId===null) return false;
+  try { await tabsAdapter.group([tabId],state.groupId); return true; } catch { return false; }
+}
+
+export async function resetRun(): Promise<void> {
+  const state = await storage.get(); if (!state) return;
+  const ids = Object.values(state.roomById).filter((room) => !room.destroyed).map((room) => room.tabId);
+  if (ids.length) await tabsAdapter.remove(ids); await storage.clear();
+}
