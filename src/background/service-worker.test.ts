@@ -53,4 +53,28 @@ describe("service worker lifecycle",()=>{
     await worker.handleMessage({type:"GAME_ACTION",action:{type:"RUN_RESET"}},{} as chrome.runtime.MessageSender);
     expect(mock.session[STATE_KEY]).toEqual(state());
   });
+
+  it("creates and registers one managed Void tab after Break Seal", async () => {
+    const mock=createChromeMock(); vi.stubGlobal("chrome",mock.chrome);
+    const initial = state() as any;
+    initial.status = "boss";
+    initial.player.currentRoomId = "boss";
+    initial.player.hasBlade = true;
+    initial.player.hasSigil = true;
+    initial.roomById.boss = { roomId: "boss", kind: "boss", tabId: 12, visited: true, destroyed: false, completed: false };
+    initial.roomById.vault = { roomId: "vault", kind: "vault", tabId: 13, visited: true, destroyed: false, completed: true };
+    initial.roomIdByTabId["12"] = "boss";
+    initial.roomIdByTabId["13"] = "vault";
+    initial.orderedRoomIds = ["entrance", "vault", "boss"];
+    mock.tabs.set(12, { id: 12, index: 1, groupId: 7, windowId: 1 });
+    mock.session[STATE_KEY] = initial;
+    const worker=await import("./service-worker");
+    await worker.handleMessage({type:"GAME_ACTION",action:{type:"BREAK_SEAL"}},{tab:{id:11}} as chrome.runtime.MessageSender);
+    const next = mock.session[STATE_KEY] as ReturnType<typeof state>;
+    expect(next.boss.voidActive).toBe(true);
+    expect(next.boss.voidRoomId).toBe("void-rift");
+    expect(mock.grouped).toHaveLength(1);
+    expect(mock.grouped[0]?.groupId).toBe(7);
+    expect(mock.grouped[0]?.ids).toHaveLength(1);
+  });
 });

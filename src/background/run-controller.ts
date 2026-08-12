@@ -41,7 +41,7 @@ export async function spawnVoid(state: GameState): Promise<GameState> {
   const boss = state.roomById[state.orderedRoomIds.find((id) => state.roomById[id]?.kind === "boss") ?? ""];
   const url = chrome.runtime.getURL(`room.html?run=${state.runId}&room=void-rift`);
   const created = await tabsAdapter.create(url);
-  await tabsAdapter.update(created.id, { pinned: false, active: false });
+  await tabsAdapter.update(created.id, { title: "VOID", pinned: false, active: false });
   if (boss) {
     const bossTab = await tabsAdapter.get(boss.tabId);
     await tabsAdapter.move([created.id], (bossTab.index ?? 0) + 1);
