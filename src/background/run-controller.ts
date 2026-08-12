@@ -45,7 +45,7 @@ export async function syncTopology(): Promise<GameState | null> {
 export async function restoreManagedTab(tabId:number): Promise<boolean> {
   const state=await storage.get(); const room=state?.roomIdByTabId[String(tabId)];
   if(!state||!room||state.groupId===null) return false;
-  try { await tabsAdapter.group([tabId],state.groupId); return true; } catch { return false; }
+  try { await tabsAdapter.move([tabId], 0, state.windowId ?? undefined); await tabsAdapter.group([tabId],state.groupId); await syncTopology(); return true; } catch { return false; }
 }
 
 export async function spawnVoid(state: GameState): Promise<GameState> {
