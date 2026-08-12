@@ -1,0 +1,2 @@
+import React from "react";import{createRoot}from"react-dom/client";import{sendMessage}from"../../platform/chrome-messaging";import type{GameState}from"../../game/types";
+function App(){const[started,setStarted]=React.useState<GameState|null>(null);return <main><h1>TABYRINTH</h1><p>The dungeon lives in your tab bar.</p><button onClick={async()=>setStarted(await sendMessage({type:"START_RUN"}) as GameState)}>{started?"Run active":"Start Run"}</button></main>}createRoot(document.getElementById("root")!).render(<App/>);
