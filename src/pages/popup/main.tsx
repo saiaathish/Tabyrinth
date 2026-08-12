@@ -20,7 +20,7 @@ function App() {
   const [confirmReset, setConfirmReset] = React.useState(false);
   const [onboardingSeen, setOnboardingSeen] = React.useState(false);
   const resetTrigger = React.useRef<HTMLButtonElement>(null);
-  React.useEffect(() => { if (!confirmReset) return; const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") { setConfirmReset(false); resetTrigger.current?.focus(); } }; document.addEventListener("keydown", onKey); return () => document.removeEventListener("keydown", onKey); }, [confirmReset]);
+  React.useEffect(() => { if (!confirmReset) return; const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") { setConfirmReset(false); resetTrigger.current?.focus(); return; } if (event.key !== "Tab") return; const dialog = document.querySelector<HTMLElement>("[role=dialog]"); const focusable = dialog ? Array.from(dialog.querySelectorAll<HTMLElement>("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])")) : []; if (!focusable.length) return; const first = focusable[0]!; const last = focusable[focusable.length - 1]!; if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); } else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); } }; document.addEventListener("keydown", onKey); return () => document.removeEventListener("keydown", onKey); }, [confirmReset]);
 
   const load = React.useCallback(async () => {
     try { setRun(await sendMessage({ type: "GET_STATE" }) as GameState | null); setView("ready"); }
