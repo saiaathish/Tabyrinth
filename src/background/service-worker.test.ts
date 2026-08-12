@@ -10,14 +10,19 @@ describe("service worker lifecycle",()=>{
 
   it("returns truthful activation results", async()=>{
     const mock=createChromeMock(); vi.stubGlobal("chrome",mock.chrome); mock.session[STATE_KEY]=state();
-    expect((await activateRun("entrance")).activated).toBe(true);
-    expect(mock.updated).toHaveLength(1);
+    expect(await activateRun()).toEqual({ state: mock.session[STATE_KEY], activated: true });
+    expect(mock.update).toHaveBeenCalledWith(11,{active:true});
     (mock.session[STATE_KEY] as ReturnType<typeof state>).roomById.entrance.destroyed=true;
     expect((await activateRun("entrance")).activated).toBe(false);
-    expect((await activateRun("missing")).activated).toBe(false);
-    mock.chrome.tabs.update=async()=>{throw new Error("closed")};
-    (mock.session[STATE_KEY] as ReturnType<typeof state>).roomById.entrance.destroyed=false;
-    expect((await activateRun("entrance")).activated).toBe(false);
+    expect(await activateRun("missing")).toEqual({ state: mock.session[STATE_KEY], activated: false });
+    const missing = mock.session[STATE_KEY] as ReturnType<typeof state>; delete (missing.roomById as Record<string, unknown>).entrance;
+    expect(await activateRun()).toEqual({ state: mock.session[STATE_KEY], activated: false });
+    mock.session[STATE_KEY]=state();
+    (mock.session[STATE_KEY] as ReturnType<typeof state>).roomById.entrance.destroyed=true;
+    expect(await activateRun()).toEqual({ state: mock.session[STATE_KEY], activated: false });
+    mock.session[STATE_KEY]=state();
+    mock.update.mockRejectedValueOnce(new Error("tab missing"));
+    await expect(activateRun()).rejects.toThrow("tab missing");
   });
 
   it("registers each browser listener once",async()=>{

@@ -29,7 +29,7 @@ export async function activateRun(roomId?: string): Promise<{ state: GameState |
   if (!state) return { state: null, activated: false };
   const target = roomId && state.roomById[roomId] ? state.roomById[roomId] : state.roomById[state.player.currentRoomId];
   if (!target || target.destroyed) return { state, activated: false };
-  try { await tabsAdapter.update(target.tabId, { active: true }); return { state, activated: true }; } catch { return { state, activated: false }; }
+  await tabsAdapter.update(target.tabId, { active: true }); return { state, activated: true };
 }
 
 export async function syncTopology(): Promise<GameState | null> {
