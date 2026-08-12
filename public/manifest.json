@@ -1,0 +1,1 @@
+{"manifest_version":3,"name":"TABYRINTH","version":"0.1.0","permissions":["storage","tabGroups"],"background":{"service_worker":"service-worker.js","type":"module"},"action":{"default_popup":"popup.html"}}
