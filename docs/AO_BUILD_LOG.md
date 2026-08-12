@@ -29,15 +29,17 @@ Factual record only. Add rows when the event exists in AO/GitHub. Do not infer o
 | 2026-08-12T07:47:40Z → 2026-08-12T07:49:54Z | `tabyrinth-34` | `UNRECORDED` | docs review | [#14](https://github.com/saiaathish/Tabyrinth/pull/14) | `UNRECORDED` | `UNRECORDED` | Review linkage/outcome unrecorded. |
 | 2026-08-12T07:52:25Z → 2026-08-12T07:53:55Z | `tabyrinth-35` | `UNRECORDED` | PR review | [#16](https://github.com/saiaathish/Tabyrinth/pull/16) | `UNRECORDED` | `UNRECORDED` | Review linkage/outcome unrecorded. |
 | 2026-08-12T07:57:12Z → 2026-08-12T07:58:05Z | `tabyrinth-36` | `UNRECORDED` | docs review | [#14](https://github.com/saiaathish/Tabyrinth/pull/14) | `UNRECORDED` | `UNRECORDED` | Review linkage/outcome unrecorded. |
-| 2026-08-12T07:59:36Z → 2026-08-12T08:01:35Z | `tabyrinth-37` | `UNRECORDED` | final release QA | `none` | `UNRECORDED` | `UNRECORDED` | npm ci/typecheck/lint/test/build PASS, 20 tests, MV3 artifacts; live browser gates UNCERTAIN. |
+| 2026-08-12T07:59:36Z → 2026-08-12T08:01:35Z | `tabyrinth-37` | `UNRECORDED` | final release QA | `none` | `UNRECORDED` | `UNRECORDED` | npm ci/typecheck/lint/test/build PASS, 20 tests, MV3 artifacts; real-Chrome critical path UNVERIFIED. |
+| 2026-08-12T08:10:06Z → 2026-08-12T08:25:20Z | `UNRECORDED` | `ao/tabyrinth-38/root` | docs: finalize post-merge AO evidence | [#17](https://github.com/saiaathish/Tabyrinth/pull/17) | `verify`: success (2 completed checks) | `UNRECORDED` (no GitHub reviews) | Head `94abd2c81b74acbde5634ca55fc186972d17f244`; merge SHA `625eef238ae7f6dac11193665527e086d5e47225`; AO session linkage unavailable. |
+| 2026-08-12T09:01:58Z → `UNRECORDED` | `UNRECORDED` | `ao/tabyrinth-51/root` | fix: close popup recovery and void guidance gaps | [#18](https://github.com/saiaathish/Tabyrinth/pull/18) | `verify`: success (2 completed checks) | `UNRECORDED` (no GitHub reviews) | Head `446d938c167640b08e4316207fae5d67764868d4`; PR remains open; AO session linkage unavailable. |
 
 ## Totals
 
 - Worker sessions recorded: `27` (`tabyrinth-5` through `tabyrinth-37` where metadata exists, excluding terminated `tabyrinth-2/3/4`)
 - Peak concurrent workers: `5` (sessions `tabyrinth-19/20/21/22/23`, based on AO created/last-activity timestamps)
 - Recorded worker span: `58m59s` (`tabyrinth-5` created 05:59:15Z through `tabyrinth-19` last activity 06:58:14Z; session `tabyrinth-23` end is `UNRECORDED`)
-- PRs opened in this record: `16` (#1–#16)
-- PRs merged in this record: `16` (#1–#16)
+- PRs opened in this record: `18` (#1–#18)
+- PRs merged in this record: `17` (#1–#17); #18 remains open
 - CI recovery events: `UNRECORDED`
 - Review recovery events: `UNRECORDED`
 - Build duration: `UNRECORDED`
@@ -51,7 +53,9 @@ Two attempted AO OpenCode spawns returned `INTERNAL_ERROR`. No OpenCode worker, 
 ## Integrated main checkpoint
 
 - Upstream `origin/main` fetched and merged into this worktree without reset/checkout.
-- Confirmed integrated `origin/main` commit: `bc8f0b59c74b6b054847afeb924eb1b4d7cdd921` (PR #14 merge).
+- Confirmed integrated `origin/main` commit: `625eef238ae7f6dac11193665527e086d5e47225` (PR #17 merge).
+- PR #17 merged 2026-08-12T08:25:20Z; its two `verify` checks succeeded.
+- PR #18 is open at head `446d938c167640b08e4316207fae5d67764868d4`; its two `verify` checks succeeded and no GitHub reviews are recorded.
 - PR #14 merged 2026-08-12T07:58:54Z; its two `verify` checks succeeded.
 - PR #16 merged 2026-08-12T07:54:29Z; its two `verify` checks succeeded.
 - PR #15 merged 2026-08-12T07:39:48Z; its two `verify` checks succeeded.

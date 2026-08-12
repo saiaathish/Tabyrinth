@@ -2,8 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createChromeMock } from "../test/mocks/chrome";
 import { STATE_KEY } from "../platform/chrome-storage";
 import { activateRun } from "./run-controller";
+import type { GameState } from "../game/types";
 
 const state = (tabId=11) => ({ schemaVersion:1 as const, runId:"run", status:"active" as const, groupId:7, windowId:1, roomById:{entrance:{roomId:"entrance",kind:"entrance" as const,tabId,visited:true,destroyed:false,completed:false}}, roomIdByTabId:{[String(tabId)]:"entrance"}, orderedRoomIds:["entrance"], player:{hp:3,maxHp:3,hasBlade:false,hasSigil:false,currentRoomId:"entrance"}, boss:{hp:3,maxHp:3,shieldBroken:false,voidActive:false,voidRoomId:null}, flags:{tutorialMoveCompleted:false,sigilAdjacencySatisfied:false,bossIntroduced:false}, metrics:{startedAt:1,endedAt:null,tabMoves:0,roomsClosed:0,actions:0}, revision:0 });
+
+const popupSender = { url: "chrome-extension://test/popup.html" } as chrome.runtime.MessageSender;
+const roomSender = (tabId=11, roomId="entrance") => ({ url:`chrome-extension://test/room.html?run=run&room=${roomId}`, tab:{id:tabId,url:`chrome-extension://test/room.html?run=run&room=${roomId}`} }) as chrome.runtime.MessageSender;
 
 describe("service worker lifecycle",()=>{
   beforeEach(()=>vi.resetModules());
@@ -12,15 +16,10 @@ describe("service worker lifecycle",()=>{
     const mock=createChromeMock(); vi.stubGlobal("chrome",mock.chrome); mock.session[STATE_KEY]=state();
     expect(await activateRun()).toEqual({ state: mock.session[STATE_KEY], activated: true });
     expect(mock.update).toHaveBeenCalledWith(11,{active:true});
-    (mock.session[STATE_KEY] as ReturnType<typeof state>).roomById.entrance.destroyed=true;
-    expect((await activateRun("entrance")).activated).toBe(false);
-    expect(await activateRun("missing")).toEqual({ state: mock.session[STATE_KEY], activated: false });
-    const missing = mock.session[STATE_KEY] as ReturnType<typeof state>; delete (missing.roomById as Record<string, unknown>).entrance;
-    expect(await activateRun()).toEqual({ state: mock.session[STATE_KEY], activated: false });
-    mock.session[STATE_KEY]=state();
-    (mock.session[STATE_KEY] as ReturnType<typeof state>).roomById.entrance.destroyed=true;
-    expect(await activateRun()).toEqual({ state: mock.session[STATE_KEY], activated: false });
-    mock.session[STATE_KEY]=state();
+    expect(await activateRun("missing")).toEqual({ state: mock.session[STATE_KEY], activated: true });
+    delete mock.session[STATE_KEY];
+    expect(await activateRun()).toEqual({ state: null, activated: false });
+    mock.session[STATE_KEY] = state();
     mock.update.mockRejectedValueOnce(new Error("tab missing"));
     await expect(activateRun()).rejects.toThrow("tab missing");
   });
@@ -35,8 +34,8 @@ describe("service worker lifecycle",()=>{
   it("rejects gameplay actions from unrelated tabs",async()=>{
     const mock=createChromeMock(); vi.stubGlobal("chrome",mock.chrome); mock.session[STATE_KEY]=state();
     const worker=await import("./service-worker");
-    const result=await worker.handleMessage({type:"GAME_ACTION",action:{type:"RUN_RESET"}},{tab:{id:999}} as chrome.runtime.MessageSender);
-    expect(result).toEqual(mock.session[STATE_KEY]);
+    const result=await worker.handleMessage({type:"GAME_ACTION",runId:"run",action:{type:"MOVE_PLAYER",payload:{toRoomId:"entrance"}}},roomSender(999));
+    expect(result).toEqual({ error: "This room is no longer managed." });
     expect(mock.session[STATE_KEY]).toEqual(state());
   });
 
@@ -71,9 +70,9 @@ describe("service worker lifecycle",()=>{
     const worker=await import("./service-worker");
     mock.listeners.removed.listeners[0]!(11);
     await new Promise((resolve)=>setTimeout(resolve,0));
-    expect((mock.session[STATE_KEY] as ReturnType<typeof state>).roomById.entrance.destroyed).toBe(true);
+    expect(mock.session[STATE_KEY]).toBeUndefined();
     mock.session[STATE_KEY]=state();
-    await worker.handleMessage({type:"GAME_ACTION",action:{type:"RUN_RESET"}},{} as chrome.runtime.MessageSender);
+    await worker.handleMessage({type:"GAME_ACTION",runId:"run",action:{type:"MOVE_PLAYER",payload:{toRoomId:"entrance"}}},{} as chrome.runtime.MessageSender);
     expect(mock.session[STATE_KEY]).toEqual(state());
   });
 
@@ -82,14 +81,14 @@ describe("service worker lifecycle",()=>{
     const worker=await import("./service-worker");
     const remove = mock.chrome.tabs.remove;
     mock.chrome.tabs.remove = async (ids:number[]) => { await remove(ids); mock.listeners.removed.listeners[0]!(ids[0]!); };
-    await worker.handleMessage({type:"RESET_RUN"},{tab:{id:11}} as chrome.runtime.MessageSender);
+    await worker.handleMessage({type:"RESET_RUN"},popupSender);
     await new Promise((resolve)=>setTimeout(resolve,0));
     expect(mock.session[STATE_KEY]).toBeUndefined();
   });
 
   it("creates and registers one managed Void tab after Break Seal", async () => {
     const mock=createChromeMock(); vi.stubGlobal("chrome",mock.chrome);
-    const initial = state() as any;
+    const initial = state() as unknown as GameState;
     initial.status = "boss";
     initial.player.currentRoomId = "boss";
     initial.player.hasBlade = true;
@@ -102,7 +101,7 @@ describe("service worker lifecycle",()=>{
     mock.tabs.set(12, { id: 12, index: 1, groupId: 7, windowId: 1 });
     mock.session[STATE_KEY] = initial;
     const worker=await import("./service-worker");
-    await worker.handleMessage({type:"GAME_ACTION",action:{type:"BREAK_SEAL"}},{tab:{id:11}} as chrome.runtime.MessageSender);
+    await worker.handleMessage({type:"GAME_ACTION",runId:"run",action:{type:"BREAK_SEAL"}},roomSender(12,"boss"));
     const next = mock.session[STATE_KEY] as ReturnType<typeof state>;
     expect(next.boss.voidActive).toBe(true);
     expect(next.boss.voidRoomId).toBe("void-rift");

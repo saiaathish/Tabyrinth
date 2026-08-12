@@ -14,8 +14,9 @@ export function reduceGame(state: GameState, action: GameAction): GameState {
       const moved = order.join() !== state.orderedRoomIds.join();
       if (!moved) return state;
       const topologyState = { ...state, orderedRoomIds: order };
-      const next = { ...state, orderedRoomIds: order, flags: { ...state.flags, tutorialMoveCompleted: true, sigilAdjacencySatisfied: canBreakBossSeal(topologyState) }, metrics: { ...state.metrics, tabMoves: state.metrics.tabMoves + 1 } };
-      return changed(state, { ...next, status: state.status === "onboarding" ? "active" : state.status });
+      const tutorialMoveCompleted = state.flags.tutorialMoveCompleted || order.indexOf("armory") === order.indexOf("vault") + 1;
+      const next = { ...state, orderedRoomIds: order, flags: { ...state.flags, tutorialMoveCompleted, sigilAdjacencySatisfied: canBreakBossSeal(topologyState) }, metrics: { ...state.metrics, tabMoves: state.metrics.tabMoves + 1 } };
+      return changed(state, { ...next, status: state.status === "onboarding" && tutorialMoveCompleted ? "active" : state.status });
     }
     case "MOVE_PLAYER": { if (state.status !== "active" && state.status !== "boss") return state; if (!canMoveTo(state, action.payload.toRoomId)) return state; const room = state.roomById[action.payload.toRoomId]; let next = changed(state, { player: { ...state.player, currentRoomId: room.roomId }, roomById: { ...state.roomById, [room.roomId]: { ...room, visited: true } } }); if (room.kind === "sanctum") next = { ...next, player: { ...next.player, hp: next.player.maxHp } }; if (room.kind === "boss") next = { ...next, status: "boss", flags: { ...next.flags, bossIntroduced: true } }; return next; }
     case "RESTORE_HEALTH": { const room = getCurrentRoom(state); if (!room || room.kind !== "sanctum" || room.completed) return state; return completeRoom(changed(state, { player: { ...state.player, hp: state.player.maxHp } }), room); }
