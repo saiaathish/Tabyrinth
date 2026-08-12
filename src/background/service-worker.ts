@@ -44,7 +44,8 @@ export async function handleMessage(message:Message, sender:chrome.runtime.Messa
     const state=await storage.get();
     if(!state || sender.tab?.id===undefined || state.roomIdByTabId[String(sender.tab.id)]===undefined) return state;
     const next=reduceGame(state,message.action as GameAction);
-    if (message.action.type === "BREAK_SEAL" && next !== state && next.boss.shieldBroken) return spawnVoid(next);
+    const enteredBoss = message.action.type === "MOVE_PLAYER" && state.status !== "boss" && next.status === "boss";
+    if ((message.action.type === "BREAK_SEAL" || enteredBoss) && next !== state && !next.boss.voidActive) return spawnVoid(next);
     await storage.set(next); return next;
   }
 }
