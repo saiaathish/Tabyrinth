@@ -10,4 +10,11 @@ Suggested files:
 - `PR_TEMPLATE.md` — PR, CI, and review record.
 - `MANUAL_TEMPLATE.md` — real-browser critical-path record.
 
+Verified coordination records currently include AO sessions `tabyrinth-5`,
+`tabyrinth-6`, `tabyrinth-10`, `tabyrinth-11`, `tabyrinth-12`,
+`tabyrinth-13`, and `tabyrinth-14`. GitHub records show PR #1 merged, PR #2
+open, PR #3 open with green `verify` checks, and PR #4 open/pending. See
+`../AO_BUILD_LOG.md` for timestamps and branches. These records do not prove
+manual Chrome gameplay.
+
 Manual evidence must state that CI cannot prove real Chrome tab dragging. Do not store secrets, tokens, or unrelated user-tab data.
