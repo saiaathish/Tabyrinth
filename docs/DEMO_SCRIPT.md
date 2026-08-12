@@ -1,6 +1,6 @@
 # TABYRINTH demo script
 
-Target: 90 seconds. Product proof first; AO proof last.
+Target: 90 seconds. Critical path: group → real Vault reorder → Sigil/Room traversal → Vault/Boss adjacency → real VOID create/close → victory → AO records. Product proof first; AO proof last. Real-browser evidence status: `UNVERIFIED` in this repository.
 
 ## Preflight
 
@@ -18,7 +18,7 @@ Target: 90 seconds. Product proof first; AO proof last.
 | 20–45s | Traverse rooms and obtain the Sigil. Reach Boss. | “The browser state is the game state.” |
 | 45–60s | Put `Vault` beside `Boss` if adjacency is wrong; show shield response. | “The topology puzzle requires a real tab move.” |
 | 60–75s | Let Boss create `VOID`; close the real tab. | “The boss breached the browser. Closing the hostile tab severs the rift.” |
-| 75–90s | Show victory, then factual AO evidence. | “AO records the real worker, branch, PR, CI, and review trail.” |
+| 75–90s | If victory was directly observed, show it, then factual AO evidence. Otherwise stop and label the product path `UNVERIFIED`; show only AO records. | “AO records the real worker, branch, PR, CI, and review trail.” |
 
 ## Stop conditions
 
