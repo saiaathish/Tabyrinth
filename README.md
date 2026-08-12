@@ -59,4 +59,4 @@ See [docs/CI_CONTRACT.md](docs/CI_CONTRACT.md) for the CI contract and [docs/DEM
 
 ## AO build evidence
 
-AO evidence is append-only and factual. Current records cover AO sessions `tabyrinth-5` through `tabyrinth-26` where metadata exists, merged PRs #1 and #6–#13, and the CI outcomes explicitly listed in [docs/AO_BUILD_LOG.md](docs/AO_BUILD_LOG.md). Two attempted AO OpenCode spawns returned `INTERNAL_ERROR`; no OpenCode session, branch, PR, or result exists. Never fill an example with invented events.
+AO evidence is append-only and factual. Current records cover AO sessions `tabyrinth-5` through `tabyrinth-29` where metadata exists, merged PRs #1 and #6–#15, and the CI outcomes explicitly listed in [docs/AO_BUILD_LOG.md](docs/AO_BUILD_LOG.md). Two attempted AO OpenCode spawns returned `INTERNAL_ERROR`; no OpenCode session, branch, PR, or result exists. Never fill an example with invented events.
