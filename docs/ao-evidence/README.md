@@ -11,12 +11,11 @@ Suggested files:
 - `MANUAL_TEMPLATE.md` — real-browser critical-path record.
 
 Verified coordination records currently include AO sessions `tabyrinth-5` through
-`tabyrinth-23` where listed in `../AO_BUILD_LOG.md`. GitHub records show PRs #1–#12
-merged; current CI/review details are listed in the build log. See
+`tabyrinth-33` where listed in `../AO_BUILD_LOG.md`. GitHub records show merged PRs #1 and #6–#13 plus #15–#16; PR #14 remains open pending review. Current CI/review details are listed in the build log. See
 `../AO_BUILD_LOG.md` for timestamps and branches. These records do not prove
 manual Chrome gameplay. Current real-Chrome critical-path evidence remains `UNVERIFIED`.
 
-OpenCode spawn limitation: AO chat returned `INTERNAL_ERROR`, and the TUI path
-was unavailable because `tmux` was missing. No OpenCode worker is recorded.
+Two attempted AO OpenCode spawns returned `INTERNAL_ERROR`. No OpenCode worker,
+session, branch, PR, or result is recorded.
 
 Manual evidence must state that CI cannot prove real Chrome tab dragging. Do not store secrets, tokens, or unrelated user-tab data.

@@ -59,4 +59,4 @@ See [docs/CI_CONTRACT.md](docs/CI_CONTRACT.md) for the CI contract and [docs/DEM
 
 ## AO build evidence
 
-AO evidence is append-only and factual. Current records cover AO sessions `tabyrinth-5` through `tabyrinth-23` where metadata exists, merged PRs #1 and #6–#12, and the CI outcomes explicitly listed in [docs/AO_BUILD_LOG.md](docs/AO_BUILD_LOG.md). OpenCode spawn was not completed: AO chat returned `INTERNAL_ERROR`, and the TUI path lacked its required `tmux` prerequisite. No OpenCode worker is claimed. Never fill an example with invented events.
+AO evidence is append-only and factual. Current records cover AO sessions `tabyrinth-5` through `tabyrinth-33` where metadata exists, merged PRs #1 and #6–#13 plus #15–#16; PR #14 remains open pending review. CI outcomes are listed in [docs/AO_BUILD_LOG.md](docs/AO_BUILD_LOG.md). Two attempted AO OpenCode spawns returned `INTERNAL_ERROR`; no OpenCode session, branch, PR, or result exists. Never fill an example with invented events.
