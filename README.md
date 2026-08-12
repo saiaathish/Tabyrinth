@@ -4,7 +4,7 @@ TABYRINTH turns your real Chrome tab strip into a dungeon: every managed tab is 
 
 ## Current state
 
-The repository currently contains the Chrome MV3 tab-topology foundation and its automated tests. The complete judge path (polished popup, room flow, Vault/Boss puzzle, VOID tab, and victory) is not yet verified on `main`. Do not present those behaviors as shipped until they have real manual evidence.
+The integrated `main` history is included through commit `9e82ec1` (PR #10), with merged PRs [#6](https://github.com/saiaathish/Tabyrinth/pull/6), [#7](https://github.com/saiaathish/Tabyrinth/pull/7), [#8](https://github.com/saiaathish/Tabyrinth/pull/8), [#9](https://github.com/saiaathish/Tabyrinth/pull/9), and [#10](https://github.com/saiaathish/Tabyrinth/pull/10). Green `verify` checks are recorded for PRs #8–#10. The complete judge path (real Chrome tab reorder, Vault/Boss puzzle, VOID tab, and victory) is not manually verified in the current evidence set. Do not present those behaviors as browser-proven until direct Chrome evidence exists.
 
 ## Load the extension locally
 
@@ -31,7 +31,7 @@ Use only a clean Chrome window and the tabs created by TABYRINTH. Keep the brows
 3. **20–45s — Explore:** move through rooms, obtain the Sigil, and reach the boss.
 4. **45–60s — Puzzle:** if the boss rejects the Sigil, drag `Vault` beside `Boss`; show the shield change.
 5. **60–75s — VOID:** let the boss create the real `VOID` tab, then close that tab and show the rift clearing.
-6. **75–90s — AO evidence:** show only real AO session/branch/PR/CI/review records from `docs/ao-evidence/`.
+6. **75–90s — AO evidence:** show only real AO session/branch/PR/CI/review records from `docs/ao-evidence/`. Current real-browser evidence status: `UNVERIFIED`.
 
 If any step is not manually verified, stop the sequence and mark it unverified. CI cannot prove real Chrome tab dragging, tab creation, tab isolation, or visual gameplay.
 
@@ -59,4 +59,4 @@ See [docs/CI_CONTRACT.md](docs/CI_CONTRACT.md) for the CI contract and [docs/DEM
 
 ## AO build evidence
 
-AO evidence is append-only and factual. Record real session IDs, branches, PRs, CI results, and review outcomes in the templates under [docs/ao-evidence/](docs/ao-evidence/). Never fill an example with invented events.
+AO evidence is append-only and factual. Current records cover AO sessions `tabyrinth-5` through `tabyrinth-23` where metadata exists, merged PRs #1 and #6–#10, and the CI outcomes explicitly listed in [docs/AO_BUILD_LOG.md](docs/AO_BUILD_LOG.md). OpenCode spawn was not completed: AO chat returned `INTERNAL_ERROR`, and the TUI path lacked its required `tmux` prerequisite. No OpenCode worker is claimed. Never fill an example with invented events.
