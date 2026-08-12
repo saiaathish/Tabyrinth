@@ -4,7 +4,7 @@ TABYRINTH turns your real Chrome tab strip into a dungeon: every managed tab is 
 
 ## Current state
 
-The integrated `main` history includes merged PRs [#6](https://github.com/saiaathish/Tabyrinth/pull/6), [#7](https://github.com/saiaathish/Tabyrinth/pull/7), [#8](https://github.com/saiaathish/Tabyrinth/pull/8), [#9](https://github.com/saiaathish/Tabyrinth/pull/9), and [#10](https://github.com/saiaathish/Tabyrinth/pull/10), with green `verify` checks recorded for PRs #8–#10. The complete judge path (real Chrome tab reorder, Vault/Boss puzzle, VOID tab, and victory) is not manually verified in the current evidence set. Do not present those behaviors as browser-proven until direct Chrome evidence exists.
+The integrated `main` history is included through commit `9e82ec1` (PR #10), with merged PRs [#6](https://github.com/saiaathish/Tabyrinth/pull/6), [#7](https://github.com/saiaathish/Tabyrinth/pull/7), [#8](https://github.com/saiaathish/Tabyrinth/pull/8), [#9](https://github.com/saiaathish/Tabyrinth/pull/9), and [#10](https://github.com/saiaathish/Tabyrinth/pull/10). Green `verify` checks are recorded for PRs #8–#10. The complete judge path (real Chrome tab reorder, Vault/Boss puzzle, VOID tab, and victory) is not manually verified in the current evidence set. Do not present those behaviors as browser-proven until direct Chrome evidence exists.
 
 ## Load the extension locally
 

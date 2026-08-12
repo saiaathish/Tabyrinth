@@ -35,3 +35,10 @@ Factual record only. Add rows when the event exists in AO/GitHub. Do not infer o
 ## Spawn limitation
 
 OpenCode worker spawn was not completed. AO chat returned `INTERNAL_ERROR`; the TUI route could not run because the required `tmux` prerequisite was missing. No OpenCode worker, branch, PR, CI result, or timing is claimed. Peak concurrency and recorded worker span above cover AO Codex sessions only.
+
+## Integrated main checkpoint
+
+- Upstream `origin/main` fetched and merged into this worktree without reset/checkout.
+- Confirmed integrated commit: `9e82ec134f03d0b483fad47b0dce58e343fa2799`.
+- Local docs branch merge commit: `ccacb756f5c638cfe6550b9175e339684c028887`.
+- Real Chrome evidence: `UNVERIFIED`.
