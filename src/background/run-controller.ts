@@ -18,7 +18,10 @@ export async function startRun(): Promise<GameState> {
   await tabsAdapter.updateGroup(groupId, "TABYRINTH");
   const roomById = Object.fromEntries(INITIAL_ROOMS.map((room, index) => [room.roomId, { ...room, tabId: ids[index]!, visited: room.roomId === "entrance", destroyed: false, completed: false }])) as GameState["roomById"];
   const state: GameState = { schemaVersion: 1, runId, status: "onboarding", groupId, windowId: win, roomById, roomIdByTabId: Object.fromEntries(ids.map((id, index) => [String(id), INITIAL_ROOMS[index]!.roomId])), orderedRoomIds: INITIAL_ROOMS.map((room) => room.roomId), player: { hp: 3, maxHp: 3, hasBlade: false, hasSigil: false, currentRoomId: "entrance" }, boss: { hp: 3, maxHp: 3, shieldBroken: false, voidActive: false, voidRoomId: null }, flags: { tutorialMoveCompleted: false, sigilAdjacencySatisfied: false, bossIntroduced: false }, metrics: { startedAt: Date.now(), endedAt: null, tabMoves: 0, roomsClosed: 0, actions: 0 }, revision: 0 };
-  assertGameState(state); await storage.set(state); return state;
+  const managed = await tabsAdapter.query({ groupId });
+  const actualOrder = managed.sort((a, b) => (a.index ?? 0) - (b.index ?? 0)).map((tab) => state.roomIdByTabId[String(tab.id)]).filter((id): id is string => Boolean(id));
+  const orderedState = actualOrder.length === ids.length ? reduceGame(state, { type: "TAB_TOPOLOGY_SYNC", payload: { orderedRoomIds: actualOrder } }) : state;
+  assertGameState(orderedState); await storage.set(orderedState); return orderedState;
 }
 
 export async function syncTopology(): Promise<GameState | null> {
@@ -48,7 +51,8 @@ export async function spawnVoid(state: GameState): Promise<GameState> {
   }
   await tabsAdapter.group([created.id], state.groupId ?? undefined);
   const next = reduceGame(state, { type: "VOID_SPAWNED", payload: { roomId: "void-rift", tabId: created.id } });
-  assertGameState(next); await storage.set(next); return next;
+  assertGameState(next); await storage.set(next);
+  return (await syncTopology()) ?? next;
 }
 
 export async function resetRun(): Promise<void> {
