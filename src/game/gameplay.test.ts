@@ -44,12 +44,21 @@ describe("pure gameplay loop", () => {
     state = reduceGame(state, { type: "BREAK_SEAL" });
     expect(state.boss.shieldBroken).toBe(true);
     state = reduceGame(state, { type: "VOID_SPAWNED", payload: { roomId: "void-rift", tabId: 5 } });
+    expect(state.orderedRoomIds).toEqual(["entrance", "armory", "sanctum", "vault", "boss", "void-rift"]);
+    expect(reduceGame(state, { type: "TAB_TOPOLOGY_SYNC", payload: { orderedRoomIds: ["entrance", "armory", "sanctum", "vault", "boss", "void-rift"] } })).toBe(state);
     expect(reduceGame(state, { type: "ATTACK_BOSS" })).toBe(state);
     state = reduceGame(state, { type: "VOID_CLOSED" });
     state = reduceGame(state, { type: "ATTACK_BOSS" });
     state = reduceGame(state, { type: "ATTACK_BOSS" });
     expect(state.status).toBe("victory");
     expect(state.boss.hp).toBe(0);
+  });
+
+  it("resets to idle without replaying a completed run", () => {
+    const state = { ...makeState(), status: "victory" as const };
+    const reset = reduceGame(state, { type: "RUN_RESET" });
+    expect(reset.status).toBe("idle");
+    expect(reduceGame(reset, { type: "ATTACK_BOSS" })).toBe(reset);
   });
 
   it("returns the same state for invalid actions", () => {
