@@ -1,4 +1,4 @@
-import { startRun, syncTopology, resetRun, restoreManagedTab } from "./run-controller";
+import { startRun, syncTopology, resetRun, restoreManagedTab, spawnVoid } from "./run-controller";
 import { storage } from "../platform/chrome-storage";
 import { reduceGame } from "../game/reducer";
 import type { GameAction, Message } from "../game/types";
@@ -22,7 +22,8 @@ const reconcile = (tabId?:number) => {
 async function onRemoved(tabId:number) {
   const state=await managedRoom(tabId); if(!state) return;
   const room=state.roomIdByTabId[String(tabId)];
-  const next=room===state.boss.voidRoomId ? reduceGame(state,{type:"VOID_CLOSED"}) : reduceGame(state,{type:"ROOM_CLOSED",payload:{roomId:room}});
+  let next=reduceGame(state,{type:"ROOM_CLOSED",payload:{roomId:room}});
+  if (room===state.boss.voidRoomId) next=reduceGame(next,{type:"VOID_CLOSED"});
   await storage.set(next);
 }
 
@@ -42,7 +43,9 @@ export async function handleMessage(message:Message, sender:chrome.runtime.Messa
   if(message.type==="GAME_ACTION") {
     const state=await storage.get();
     if(!state || sender.tab?.id===undefined || state.roomIdByTabId[String(sender.tab.id)]===undefined) return state;
-    const next=reduceGame(state,message.action as GameAction); await storage.set(next); return next;
+    const next=reduceGame(state,message.action as GameAction);
+    if (message.action.type === "BREAK_SEAL" && next !== state && next.boss.shieldBroken) return spawnVoid(next);
+    await storage.set(next); return next;
   }
 }
 
