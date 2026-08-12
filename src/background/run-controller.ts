@@ -55,7 +55,7 @@ export async function activateRun(roomId?: string): Promise<{ state: GameState |
 }
 
 export async function syncTopology(): Promise<GameState | null> {
-  const state = await storage.get(); if (!state || !state.groupId) return state;
+  const state = await storage.get(); if (!state || state.groupId === null) return state;
   const managed = await tabsAdapter.query({ groupId: state.groupId });
   const ordered = managed.sort((a, b) => (a.index ?? 0) - (b.index ?? 0)).map((tab) => state.roomIdByTabId[String(tab.id)]).filter((id): id is string => Boolean(id));
   const known = state.orderedRoomIds.filter((id) => !state.roomById[id].destroyed);

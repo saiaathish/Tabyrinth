@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { INITIAL_ROOMS } from "../game/constants";
 import { STATE_KEY } from "../platform/chrome-storage";
 import { createChromeMock } from "../test/mocks/chrome";
-import { startRun } from "./run-controller";
+import { startRun, syncTopology } from "./run-controller";
+import type { GameState } from "../game/types";
 
 describe("run controller contract", () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -67,5 +68,37 @@ describe("run controller contract", () => {
     expect(mock.removed).toHaveLength(1);
     expect(mock.removed[0]).toHaveLength(5);
     expect(mock.session[STATE_KEY]).toBeUndefined();
+  });
+
+  it("syncs topology for Chrome group id zero", async () => {
+    const mock = createChromeMock();
+    const state: GameState = {
+      schemaVersion: 1,
+      runId: "run",
+      status: "active",
+      groupId: 0,
+      windowId: 1,
+      roomById: {
+        entrance: { roomId: "entrance", kind: "entrance", tabId: 11, visited: true, destroyed: false, completed: false },
+        armory: { roomId: "armory", kind: "armory", tabId: 12, visited: false, destroyed: false, completed: false },
+      },
+      roomIdByTabId: { "11": "entrance", "12": "armory" },
+      orderedRoomIds: ["entrance", "armory"],
+      player: { hp: 3, maxHp: 3, hasBlade: false, hasSigil: false, currentRoomId: "entrance" },
+      boss: { hp: 3, maxHp: 3, shieldBroken: false, voidActive: false, voidRoomId: null },
+      flags: { tutorialMoveCompleted: false, sigilAdjacencySatisfied: false, bossIntroduced: false },
+      metrics: { startedAt: 1, endedAt: null, tabMoves: 0, roomsClosed: 0, actions: 0 },
+      revision: 0,
+    };
+    mock.session[STATE_KEY] = state;
+    mock.tabs.set(11, { id: 11, index: 1, groupId: 0, windowId: 1 });
+    mock.tabs.set(12, { id: 12, index: 0, groupId: 0, windowId: 1 });
+    vi.stubGlobal("chrome", mock.chrome);
+
+    const next = await syncTopology();
+
+    expect(next?.orderedRoomIds).toEqual(["armory", "entrance"]);
+    expect(next?.metrics.tabMoves).toBe(1);
+    expect(mock.session[STATE_KEY]).toEqual(next);
   });
 });

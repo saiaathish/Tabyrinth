@@ -99,6 +99,24 @@ describe("service worker security and lifecycle contracts", () => {
     expect(mock.update).toHaveBeenCalledWith(12, { active: true });
   });
 
+  it("does not persist a portal move when destination activation fails", async () => {
+    const mock = createChromeMock();
+    const initial = makeState();
+    mock.session[STATE_KEY] = initial;
+    mock.update.mockRejectedValueOnce(new Error("destination unavailable"));
+    vi.stubGlobal("chrome", mock.chrome);
+    const { handleMessage } = await import("./service-worker");
+
+    await expect(handleMessage(
+      { type: "GAME_ACTION", runId: "run", action: { type: "MOVE_PLAYER", payload: { toRoomId: "armory" } } },
+      roomSender(),
+    )).rejects.toThrow("destination unavailable");
+
+    expect(mock.session[STATE_KEY]).toEqual(initial);
+    expect((mock.session[STATE_KEY] as GameState).player.currentRoomId).toBe("entrance");
+    expect((mock.session[STATE_KEY] as GameState).revision).toBe(0);
+  });
+
   it("uses managed tab order as topology after onMoved", async () => {
     const mock = createChromeMock();
     mock.session[STATE_KEY] = makeState();
