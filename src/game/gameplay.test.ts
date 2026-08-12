@@ -33,6 +33,18 @@ describe("pure gameplay loop", () => {
     expect(state.player.hasSigil).toBe(true);
   });
 
+  it("completes Sanctum restoration after entry heals to max health", () => {
+    let state = makeState();
+    state = reduceGame(state, { type: "MOVE_PLAYER", payload: { toRoomId: "armory" } });
+    state = reduceGame(state, { type: "MOVE_PLAYER", payload: { toRoomId: "sanctum" } });
+    expect(state.player.hp).toBe(state.player.maxHp);
+    expect(state.roomById.sanctum.completed).toBe(false);
+
+    const restored = reduceGame(state, { type: "RESTORE_HEALTH" });
+    expect(restored.roomById.sanctum.completed).toBe(true);
+    expect(reduceGame(restored, { type: "RESTORE_HEALTH" })).toBe(restored);
+  });
+
   it("breaks seal, blocks attacks during Void, then wins on final hit", () => {
     let state = makeState();
     state = reduceGame(state, { type: "MOVE_PLAYER", payload: { toRoomId: "armory" } });
