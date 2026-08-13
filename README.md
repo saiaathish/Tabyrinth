@@ -4,7 +4,7 @@ TABYRINTH helps you explore browser rabbit holes without losing your main task. 
 
 ## Current state
 
-Published `main` is `625eef238ae7f6dac11193665527e086d5e47225` ([PR #17](https://github.com/saiaathish/Tabyrinth/pull/17), merged 2026-08-12T08:25:20Z, two successful `verify` checks). [PR #18](https://github.com/saiaathish/Tabyrinth/pull/18) is open at head `446d938c167640b08e4316207fae5d67764868d4` with two successful `verify` checks and no GitHub reviews. This local `codex/prd-completion` branch contains a clean committed PRD-completion checkpoint integrating PR #18. Final Chrome critical path remains **UNVERIFIED**.
+This local `codex/prd-completion` branch is clean at head `57ed807993b407e092ff938a3c905e9a1095b599`, with Portal Fold as the flagship, Arcade compatibility restored, and minimal Loot exposed behind the Side Panel. Final untouched-profile Chrome critical path remains **UNVERIFIED**.
 
 The complete judge path (real Chrome tab reorder, Vault/Boss puzzle, VOID tab, and victory) remains **UNVERIFIED** because no direct real-Chrome critical-path run is recorded. Do not present those behaviors as browser-proven until direct Chrome evidence exists.
 
@@ -51,9 +51,9 @@ See [docs/CI_CONTRACT.md](docs/CI_CONTRACT.md) for the CI contract and [docs/DEM
 
 ## Known limitations
 
-- Published `main` is the PR #17 merge above; this branch includes the open PR #18 candidate and additional uncommitted hardening.
-- Chrome behavior and permissions still require manual validation in a real browser.
+- Chrome behavior and permissions still require manual validation in a real browser; the connected browser could render the local UI preview but could not claim `chrome://extensions` for an unpacked-extension run.
 - Automated checks do not prove real Chrome tab creation, closure, service-worker wake behavior, or visual presentation.
+- Existing copied-profile CDP evidence covers the earlier Portal runtime checkpoint; it is not re-used as fresh proof for the compatibility recovery.
 - Chrome Web Store packaging and distribution are out of scope.
 
 ## AO build evidence
