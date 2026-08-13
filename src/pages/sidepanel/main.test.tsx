@@ -18,7 +18,7 @@ afterEach(() => { document.body.innerHTML = ""; });
 describe("Side Panel instrument", () => {
   it("renders one trail and a consequence-clear primary action", () => {
     const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
-    act(() => root.render(<SidePanel state="active" quest={quest} trail={trail} portals={portals} loot={[]} />));
+    act(() => root.render(<SidePanel state="active" quest={quest} trail={trail} portals={portals} />));
     expect(host.querySelectorAll("ol.quest-trail")).toHaveLength(1);
     expect(host.textContent).toContain("Fold this detour");
     expect(host.textContent).not.toContain("Local trail");
@@ -27,7 +27,7 @@ describe("Side Panel instrument", () => {
 
   it("keeps collections mutually exclusive and restores focus to the requested drawer", () => {
     const onDrawer = vi.fn(); const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
-    act(() => root.render(<SidePanel state="active" quest={quest} trail={trail} portals={portals} loot={[]} drawer="portals" onDrawer={onDrawer} />));
+    act(() => root.render(<SidePanel state="active" quest={quest} trail={trail} portals={portals} drawer="portals" onDrawer={onDrawer} />));
     expect(host.querySelectorAll("aside")).toHaveLength(1);
     expect(host.textContent).toContain("Animation research");
     expect(host.querySelector<HTMLButtonElement>('aside button[aria-label="Close portals"]')).toBe(document.activeElement);
@@ -35,7 +35,7 @@ describe("Side Panel instrument", () => {
 
   it("renders a required, bounded goal before Begin Quest", () => {
     const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
-    act(() => root.render(<SidePanel state="start" quest={null} trail={[]} portals={[]} loot={[]} />));
+    act(() => root.render(<SidePanel state="start" quest={null} trail={[]} portals={[]} />));
     const input = host.querySelector<HTMLInputElement>("input")!;
     expect(input.required).toBe(true);
     expect(input.maxLength).toBe(120);

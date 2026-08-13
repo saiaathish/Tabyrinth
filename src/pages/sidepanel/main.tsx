@@ -5,10 +5,9 @@ import type { PortalQuest } from "../../portal/quest";
 import "../surfaces.css";
 
 export type SidePanelState = "loading" | "start" | "active" | "nothing-to-fold" | "unsupported" | "unsafe" | "missing-origin" | "sealed" | "restoring" | "partial" | "error" | "complete";
-export type SidePanelAction = "fold" | "keep" | "loot";
+export type SidePanelAction = "fold" | "keep";
 export type TrailNode = { id: string; title: string; url: string; disposition: "path" | "unclassified" | "loot" | "portal"; status: string };
 export type PortalGraph = { nodes: Record<string, { id: string; questId: string; title: string | null; url: string | null; disposition: TrailNode["disposition"]; parentNodeId: string | null; status: string }>; tabBindings: Record<string, { nodeId: string; windowId: number | null }> };
-export type LootItem = { id: string; title: string; url: string; note?: string };
 export type PortalItem = { id: string; title: string; nodeIds: string[]; status: string; restoreStatus?: string; restoredNodeIds?: string[]; error?: string | null };
 
 const copy: Record<Exclude<SidePanelState, "start" | "loading">, { label: string; title: string; body?: string }> = {
@@ -44,8 +43,8 @@ function Trail({ trail }: { trail: TrailNode[] }) {
   </ol>;
 }
 
-type DrawerName = "portals" | "loot" | null;
-function Drawer({ open, portals, loot, busy, onClose, onUnseal, triggerRef }: { open: DrawerName; portals: PortalItem[]; loot: LootItem[]; busy: boolean; onClose: () => void; onUnseal: (portal: PortalItem) => void; triggerRef: React.RefObject<HTMLButtonElement | null> }) {
+type DrawerName = "portals" | null;
+function Drawer({ open, portals, busy, onClose, onUnseal, triggerRef }: { open: DrawerName; portals: PortalItem[]; busy: boolean; onClose: () => void; onUnseal: (portal: PortalItem) => void; triggerRef: React.RefObject<HTMLButtonElement | null> }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => { if (open) closeRef.current?.focus(); }, [open]);
   useEffect(() => {
@@ -56,11 +55,10 @@ function Drawer({ open, portals, loot, busy, onClose, onUnseal, triggerRef }: { 
   }, [open, onClose]);
   useEffect(() => { if (!open) triggerRef.current?.focus(); }, [open, triggerRef]);
   if (!open) return null;
-  const items = open === "portals" ? portals : loot;
   const drawerId = `${open}-drawer`;
-  return <aside id={drawerId} className="collection-drawer" aria-label={open === "portals" ? "Saved Portals" : "Saved Loot"} role="dialog" aria-modal="false">
-    <header><strong>{open === "portals" ? "Portals" : "Loot"}</strong><button ref={closeRef} type="button" className="text-control" onClick={onClose} aria-label={`Close ${open}`}>Close</button></header>
-    {items.length === 0 ? <p className="drawer-empty">Nothing saved yet.</p> : open === "portals" ? <ul>{portals.map((portal) => <li key={portal.id}><span><strong>{portal.title}</strong><small>{portal.nodeIds.length} pages · {portal.restoreStatus === "partial" ? `${portal.restoredNodeIds?.length ?? 0} restored` : portal.status}</small></span>{portal.status === "open" ? <span className="drawer-state">Restored</span> : <Button variant="quiet" disabled={busy || portal.status === "restoring"} onClick={() => onUnseal(portal)}>{portal.status === "restoring" ? "Restoring" : portal.restoreStatus === "partial" ? "Retry" : "Unseal"}</Button>}</li>)}</ul> : <ul>{loot.map((item) => <li key={item.id}><a href={item.url} target="_blank" rel="noreferrer"><strong>{item.title}</strong>{item.note && <small>{item.note}</small>}</a></li>)}</ul>}
+  return <aside id={drawerId} className="collection-drawer" aria-label="Saved Portals" role="dialog" aria-modal="false">
+    <header><strong>Portals</strong><button ref={closeRef} type="button" className="text-control" onClick={onClose} aria-label="Close portals">Close</button></header>
+    {portals.length === 0 ? <p className="drawer-empty">Nothing saved yet.</p> : <ul>{portals.map((portal) => <li key={portal.id}><span><strong>{portal.title}</strong><small>{portal.nodeIds.length} pages · {portal.restoreStatus === "partial" ? `${portal.restoredNodeIds?.length ?? 0} restored` : portal.status}</small></span>{portal.status === "open" ? <span className="drawer-state">Restored</span> : <Button variant="quiet" disabled={busy || portal.status === "restoring"} onClick={() => onUnseal(portal)}>{portal.status === "restoring" ? "Restoring" : portal.restoreStatus === "partial" ? "Retry" : "Unseal"}</Button>}</li>)}</ul>}
   </aside>;
 }
 
@@ -69,7 +67,6 @@ export type SidePanelProps = {
   quest: PortalQuest | null;
   trail: TrailNode[];
   portals: PortalItem[];
-  loot: LootItem[];
   busy?: boolean;
   notice?: string;
   drawer?: DrawerName;
@@ -78,16 +75,12 @@ export type SidePanelProps = {
   onFinish?: () => void;
   onDrawer?: (drawer: DrawerName) => void;
   onUnseal?: (portal: PortalItem) => void;
-  lootComposer?: boolean;
-  onLootComposer?: (open: boolean) => void;
-  onLootSave?: (note: string, close: boolean) => void;
 };
 
-export function SidePanel({ state, quest, trail, portals, loot, busy = false, notice = "", drawer = null, onBegin, onAction, onFinish, onDrawer, onUnseal, lootComposer = false, onLootComposer, onLootSave }: SidePanelProps) {
+export function SidePanel({ state, quest, trail, portals, busy = false, notice = "", drawer = null, onBegin, onAction, onFinish, onDrawer, onUnseal }: SidePanelProps) {
   const goalId = useId();
   const [goal, setGoal] = useState("");
   const portalsTriggerRef = useRef<HTMLButtonElement>(null);
-  const lootTriggerRef = useRef<HTMLButtonElement>(null);
   const lastDrawerTriggerRef = useRef<HTMLButtonElement | null>(null);
   const submit = (event: FormEvent) => { event.preventDefault(); const title = goal.trim(); if (title) onBegin?.(title); };
   const stateCopy = state === "start" || state === "loading" ? null : copy[state];
@@ -113,18 +106,12 @@ export function SidePanel({ state, quest, trail, portals, loot, busy = false, no
         {state === "unsafe" && <Button disabled={busy} onClick={() => onAction?.("fold")}>Retry fold</Button>}
         {state !== "complete" && <div className="secondary-actions">
           <button type="button" className="text-control" disabled={busy || !trail.length} onClick={() => onAction?.("keep")}>Keep on path</button>
-          <button type="button" className="text-control" disabled={busy || !trail.length} onClick={() => onLootComposer?.(!lootComposer)}>Save as Loot</button>
         </div>}
-        {lootComposer && <form className="loot-composer" onSubmit={(event) => { event.preventDefault(); const note = new FormData(event.currentTarget).get("note"); onLootSave?.(typeof note === "string" ? note.trim() : "", false); }}>
-          <label htmlFor="loot-note">Optional note</label><input id="loot-note" name="note" maxLength={160} placeholder="One useful detail" />
-          <div><Button type="submit" disabled={busy}>Save</Button><Button type="button" variant="quiet" disabled={busy} onClick={(event) => { const form = event.currentTarget.form; const note = form ? new FormData(form).get("note") : ""; onLootSave?.(typeof note === "string" ? note.trim() : "", true); }}>Save + Close</Button><button type="button" className="text-control" onClick={() => onLootComposer?.(false)}>Cancel</button></div>
-        </form>}
       </section>
       <footer className="instrument-footer">
         <button ref={portalsTriggerRef} type="button" className="collection-trigger" aria-expanded={drawer === "portals"} aria-controls="portals-drawer" onClick={() => { lastDrawerTriggerRef.current = portalsTriggerRef.current; onDrawer?.(drawer === "portals" ? null : "portals"); }}><span>{portals.length}</span> Portals</button>
-        <button ref={lootTriggerRef} type="button" className="collection-trigger" aria-expanded={drawer === "loot"} aria-controls="loot-drawer" onClick={() => { lastDrawerTriggerRef.current = lootTriggerRef.current; onDrawer?.(drawer === "loot" ? null : "loot"); }}><span>{loot.length}</span> Loot</button>
       </footer>
-      <Drawer open={drawer} portals={portals} loot={loot} busy={busy} triggerRef={lastDrawerTriggerRef} onClose={() => onDrawer?.(null)} onUnseal={(portal) => onUnseal?.(portal)} />
+      <Drawer open={drawer} portals={portals} busy={busy} triggerRef={lastDrawerTriggerRef} onClose={() => onDrawer?.(null)} onUnseal={(portal) => onUnseal?.(portal)} />
     </>}
     {notice && <p className="surface-notice" role={state === "error" || state === "unsafe" || state === "partial" ? "alert" : "status"}>{notice}</p>}
   </main>;
@@ -154,10 +141,8 @@ function LiveSidePanel() {
   const [graph, setGraph] = useState<PortalGraph | null>(null);
   const [quest, setQuest] = useState<PortalQuest | null>(null);
   const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
-  const [loot, setLoot] = useState<LootItem[]>([]);
   const [portals, setPortals] = useState<PortalItem[]>([]);
   const [drawer, setDrawer] = useState<DrawerName>(null);
-  const [lootComposer, setLootComposer] = useState(false);
 
   const refresh = async () => {
     const result = await chrome.runtime.sendMessage({ type: "PORTAL_GET" });
@@ -166,7 +151,7 @@ function LiveSidePanel() {
     const nextQuest = (result?.quest ?? null) as PortalQuest | null;
     const nextPortals = Object.values(result?.state?.portals ?? {}) as PortalItem[];
     const nextCurrent = result?.currentNodeId ?? null;
-    setGraph(nextGraph); setQuest(nextQuest); setLoot(result?.loot ?? []); setPortals(nextPortals); setCurrentNodeId(nextCurrent);
+    setGraph(nextGraph); setQuest(nextQuest); setPortals(nextPortals); setCurrentNodeId(nextCurrent);
     if (!nextQuest) setState("start");
     else if (nextQuest.status === "complete") setState("complete");
     else {
@@ -201,17 +186,10 @@ function LiveSidePanel() {
     if (!quest || !currentNodeId) { setState("unsupported"); return; }
     if (kind === "fold") void perform(() => chrome.runtime.sendMessage({ type: "PORTAL_FOLD", questId: quest.id, currentNodeId }), "Branch sealed.");
     if (kind === "keep") void perform(() => chrome.runtime.sendMessage({ type: "PORTAL_MARK_PATH", nodeId: currentNodeId }), "Kept on path.");
-    if (kind === "loot") setLootComposer(true);
   };
   const finish = () => { if (quest) void perform(() => chrome.runtime.sendMessage({ type: "PORTAL_FINISH", questId: quest.id }), "Quest complete."); };
   const unseal = (portal: PortalItem) => { setState("restoring"); void perform(() => chrome.runtime.sendMessage({ type: "PORTAL_UNSEAL", portalId: portal.id }), "Branch unsealed."); };
-  const saveLoot = (note: string, close: boolean) => {
-    if (!currentNodeId) return;
-    void perform(() => chrome.runtime.sendMessage({ type: "PORTAL_SAVE_LOOT", nodeId: currentNodeId, ...(note ? { note } : {}), ...(close ? { close: true } : {}) }), close ? "Loot saved. Tab closed." : "Loot saved.").then((result) => {
-      if (result) setLootComposer(false);
-    });
-  };
-  return <SidePanel state={state} quest={quest} trail={trail} portals={portals} loot={loot} busy={busy} notice={notice} drawer={drawer} lootComposer={lootComposer} onLootComposer={setLootComposer} onLootSave={saveLoot} onBegin={begin} onAction={action} onFinish={finish} onDrawer={setDrawer} onUnseal={unseal} />;
+  return <SidePanel state={state} quest={quest} trail={trail} portals={portals} busy={busy} notice={notice} drawer={drawer} onBegin={begin} onAction={action} onFinish={finish} onDrawer={setDrawer} onUnseal={unseal} />;
 }
 
 export function SidePanelPreview() {
@@ -221,7 +199,7 @@ export function SidePanelPreview() {
     { id: "preview-leaf", title: "Lifecycle edge cases", url: "https://issues.chromium.org", disposition: "unclassified", status: "live" },
   ];
   const quest: PortalQuest = { id: "preview", title: "Ship the next release", rootNodeId: trail[0].id, currentNodeId: trail[2].id, status: "active", createdAt: 1, completedAt: null };
-  return <SidePanel state="active" quest={quest} trail={trail} portals={[{ id: "preview-portal", title: "Animation research", nodeIds: ["x", "y"], status: "sealed" }]} loot={[{ id: "preview-loot", title: "MV3 lifecycle notes", url: "https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle" }]} />;
+  return <SidePanel state="active" quest={quest} trail={trail} portals={[{ id: "preview-portal", title: "Animation research", nodeIds: ["x", "y"], status: "sealed" }]} />;
 }
 
 const rootElement = typeof document !== "undefined" ? document.getElementById("root") : null;

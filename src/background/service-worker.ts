@@ -1,6 +1,6 @@
 import { handleQuestMessage, handleQuestTabRemoved, isQuestMessage, reconcileQuestSession, restoreQuestTab, restoreQuestWorkspace } from "../quest/runtime";
 import { parsePortalMessage } from "../portal/messages";
-import { beginPortalQuest, capturePortalCreated, capturePortalRemoved, capturePortalUpdated, deletePortal, finishActivePortalQuest, foldPortal, getPortalState, markPortalPath, reconcilePortalSession, renamePortal, savePortalLoot, unsealPortal } from "../portal/runtime";
+import { beginPortalQuest, capturePortalCreated, capturePortalRemoved, capturePortalUpdated, deletePortal, finishActivePortalQuest, foldPortal, getPortalState, markPortalPath, reconcilePortalSession, renamePortal, unsealPortal } from "../portal/runtime";
 
 let registered = false;
 let reconcileTimer: ReturnType<typeof setTimeout> | undefined;
@@ -66,7 +66,6 @@ export async function handleMessage(value: unknown, sender: chrome.runtime.Messa
       if (portalMessage.type === "PORTAL_BEGIN") return beginPortalQuest(portalMessage.title);
       if (portalMessage.type === "PORTAL_FINISH") return finishActivePortalQuest(portalMessage.questId);
       if (portalMessage.type === "PORTAL_MARK_PATH") return markPortalPath(portalMessage.nodeId);
-      if (portalMessage.type === "PORTAL_SAVE_LOOT") return savePortalLoot(portalMessage.nodeId, portalMessage.note, portalMessage.close);
       if (portalMessage.type === "PORTAL_RENAME") return renamePortal(portalMessage.portalId, portalMessage.title);
       if (portalMessage.type === "PORTAL_DELETE") return deletePortal(portalMessage.portalId);
       if (portalMessage.type === "PORTAL_FOLD") return foldPortal(portalMessage.questId, portalMessage.currentNodeId);

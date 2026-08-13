@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BranchGraph } from "../branch/types";
-import { BRANCH_GRAPH_KEY, LOOT_KEY, PORTAL_SESSION_KEY, PORTAL_STATE_KEY, type PortalSession } from "./storage";
+import { BRANCH_GRAPH_KEY, PORTAL_SESSION_KEY, PORTAL_STATE_KEY, type PortalSession } from "./storage";
 import { createPortalSnapshot, type Portal, type PortalState } from "./types";
 
 const node = { id: "branch", questId: "q", parentNodeId: "origin", url: "https://branch.test", title: "Branch", faviconUrl: null, disposition: "portal" as const, status: "sealed" as const, createdAt: 1, updatedAt: 1 };
@@ -22,8 +22,7 @@ function setup(options: { tabUrl?: string; status?: Portal["status"] } = {}) {
     },
   };
   const branchGraph = { nodes: { branch: node }, tabBindings: {} } satisfies BranchGraph;
-  const loot = [{ id: "loot", questId: "q", sourceNodeId: "branch", url: "https://branch.test", title: "Loot", faviconUrl: null, createdAt: 1 }];
-  const local: Record<string, unknown> = { [PORTAL_STATE_KEY]: portalState, [BRANCH_GRAPH_KEY]: branchGraph, [LOOT_KEY]: loot };
+  const local: Record<string, unknown> = { [PORTAL_STATE_KEY]: portalState, [BRANCH_GRAPH_KEY]: branchGraph };
   const portalSession: PortalSession = { portalTabIds: { p: 90, other: 91 }, bindings: { "7": { nodeId: "branch", windowId: 1 } } };
   const session: Record<string, unknown> = { [PORTAL_SESSION_KEY]: portalSession };
   const calls: string[] = [];
@@ -38,7 +37,7 @@ function setup(options: { tabUrl?: string; status?: Portal["status"] } = {}) {
       remove: async (id: number) => { calls.push(`remove:${id}`); },
     },
   });
-  return { local, session, calls, branchGraph, loot };
+  return { local, session, calls, branchGraph };
 }
 
 describe("Portal deletion runtime", () => {
@@ -54,7 +53,6 @@ describe("Portal deletion runtime", () => {
     expect((state.session[PORTAL_SESSION_KEY] as PortalSession).portalTabIds).toEqual({ other: 91 });
     expect((state.session[PORTAL_SESSION_KEY] as PortalSession).bindings).toEqual({ "7": { nodeId: "branch", windowId: 1 } });
     expect(state.local[BRANCH_GRAPH_KEY]).toEqual(state.branchGraph);
-    expect(state.local[LOOT_KEY]).toEqual(state.loot);
     expect(state.calls).toEqual(["persist-local", "persist-session", "remove:90"]);
   });
 
