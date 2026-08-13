@@ -98,6 +98,48 @@ export async function beginPortalQuest(title: string) {
   return { quest, questId, rootNodeId: nodeId, currentNodeId: nodeId };
 }
 
+/**
+ * Adopt the active web tab only after an explicit user action. Openerless tabs
+ * stay outside the Quest until this path proves a live same-window parent.
+ */
+export async function trackCurrentPortalTab() {
+  const quest = await portalStorage.getActiveQuest();
+  if (!quest) throw new Error("QUEST_NOT_ACTIVE");
+
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  const tab = tabs.find((candidate) => candidate.id !== undefined);
+  if (!tab || tab.id === undefined || tab.windowId === undefined || !isSupportedWebUrl(tab.url)) throw new Error("UNSUPPORTED_ACTIVE_TAB");
+
+  const graph = await graphWithSession();
+  if (graph.tabBindings[String(tab.id)]) throw new Error("TAB_ALREADY_TRACKED");
+
+  const parentNodeId = quest.currentNodeId ?? quest.rootNodeId;
+  const parentNode = graph.nodes[parentNodeId];
+  const parentEntry = Object.entries(graph.tabBindings).find(([, binding]) => binding.nodeId === parentNodeId);
+  if (!parentNode || parentNode.questId !== quest.id || parentNode.status !== "live" || !parentEntry) throw new Error("QUEST_ORIGIN_UNAVAILABLE");
+
+  const parentTabId = Number(parentEntry[0]);
+  const parentBinding = parentEntry[1];
+  if (!Number.isInteger(parentTabId) || parentBinding.windowId === null || parentBinding.windowId !== tab.windowId) throw new Error("CROSS_WINDOW_PARENT");
+  const parentTab = await chrome.tabs.get(parentTabId).catch(() => null);
+  if (!parentTab || parentTab.id !== parentTabId || parentTab.windowId !== tab.windowId || parentTab.url !== parentNode.url || !isSupportedWebUrl(parentTab.url)) throw new Error("QUEST_ORIGIN_UNAVAILABLE");
+
+  const runtime = new BranchRuntime(graph);
+  const childNodeId = runtime.onCreated(quest.id, {
+    tabId: tab.id,
+    openerTabId: parentTabId,
+    windowId: tab.windowId,
+    url: tab.url,
+    title: tab.title,
+    faviconUrl: tab.favIconUrl,
+  });
+  const nextGraph = runtime.snapshot();
+  await persistGraph(nextGraph);
+  const nextQuest = { ...quest, currentNodeId: childNodeId };
+  await portalStorage.putQuest(nextQuest);
+  return { graph: nextGraph, quest: nextQuest, currentNodeId: childNodeId };
+}
+
 export async function finishActivePortalQuest(questId: string) {
   const quest = await portalStorage.getActiveQuest();
   if (!quest || quest.id !== questId) throw new Error("QUEST_NOT_FOUND");

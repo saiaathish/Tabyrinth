@@ -1,5 +1,6 @@
 export type PortalMessage =
   | { type: "PORTAL_GET" }
+  | { type: "PORTAL_TRACK_CURRENT" }
   | { type: "PORTAL_BEGIN"; title: string }
   | { type: "PORTAL_FINISH"; questId: string }
   | { type: "PORTAL_MARK_PATH"; nodeId: string }
@@ -16,6 +17,7 @@ const keys = (v: Record<string, unknown>, expected: string[]) => Object.keys(v).
 export function parsePortalMessage(value: unknown): PortalMessage | null {
   if (!record(value) || typeof value.type !== "string") return null;
   if (value.type === "PORTAL_GET" && keys(value, ["type"])) return { type: "PORTAL_GET" };
+  if (value.type === "PORTAL_TRACK_CURRENT" && keys(value, ["type"])) return { type: "PORTAL_TRACK_CURRENT" };
   if (value.type === "PORTAL_BEGIN" && string(value.title) && value.title.trim().length > 0 && value.title.trim().length <= 120 && keys(value, ["type", "title"])) return { type: "PORTAL_BEGIN", title: value.title.trim() };
   if (value.type === "PORTAL_FINISH" && string(value.questId) && keys(value, ["type", "questId"])) return { type: "PORTAL_FINISH", questId: value.questId };
   if (value.type === "PORTAL_MARK_PATH" && string(value.nodeId) && keys(value, ["type", "nodeId"])) return { type: "PORTAL_MARK_PATH", nodeId: value.nodeId };

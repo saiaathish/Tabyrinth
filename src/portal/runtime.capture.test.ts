@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BranchGraph, BranchNode } from "../branch/types";
-import { capturePortalCreated, reconcilePortalSession } from "./runtime";
+import { capturePortalCreated, reconcilePortalSession, trackCurrentPortalTab } from "./runtime";
 import { BRANCH_GRAPH_KEY, PORTAL_QUESTS_KEY, PORTAL_SESSION_KEY, type PortalSession } from "./storage";
 
 const local: Record<string, unknown> = {};
@@ -97,6 +97,45 @@ describe("Portal Chrome ancestry capture", () => {
     const graph = storedGraph();
     const captured = graph.nodes[graph.tabBindings["8"]!.nodeId]!;
     expect(captured).toMatchObject({ questId: "quest-right", parentNodeId: opener.id, url: "https://child.test", title: "Child" });
+  });
+
+  it("tracks an explicit openerless current tab under the active Quest node", async () => {
+    const root = node("root", "quest-a");
+    seed({ nodes: { root }, tabBindings: { "7": { nodeId: root.id, windowId: 3 } } }, undefined, "quest-a");
+    (chrome.tabs.query as unknown as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: 8, windowId: 3, url: "https://child.test", title: "Child" }]);
+    (chrome.tabs.get as unknown as ReturnType<typeof vi.fn>) = vi.fn(async (id: number) => id === 7 ? { id, windowId: 3, url: root.url } : null);
+
+    const result = await trackCurrentPortalTab();
+    expect(result.quest.currentNodeId).toBe(result.currentNodeId);
+    expect(result.graph.nodes[result.currentNodeId]).toMatchObject({ questId: "quest-a", parentNodeId: root.id, url: "https://child.test", title: "Child" });
+    expect((session[PORTAL_SESSION_KEY] as PortalSession).bindings["8"]).toMatchObject({ nodeId: result.currentNodeId, windowId: 3 });
+    expect((local[PORTAL_QUESTS_KEY] as Array<{ currentNodeId: string }>)[0]?.currentNodeId).toBe(result.currentNodeId);
+  });
+
+  it("rejects an unsupported active tab without changing the Quest graph", async () => {
+    const root = node("root", "quest-a");
+    seed({ nodes: { root }, tabBindings: { "7": { nodeId: root.id, windowId: 3 } } }, undefined, "quest-a");
+    (chrome.tabs.query as unknown as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: 8, windowId: 3, url: "chrome://extensions" }]);
+
+    await expect(trackCurrentPortalTab()).rejects.toThrow("UNSUPPORTED_ACTIVE_TAB");
+    expect(storedGraph()).toEqual({ nodes: { root }, tabBindings: { "7": { nodeId: root.id, windowId: 3 } } });
+  });
+
+  it("rejects an already tracked active tab", async () => {
+    const root = node("root", "quest-a");
+    seed({ nodes: { root }, tabBindings: { "7": { nodeId: root.id, windowId: 3 } } }, undefined, "quest-a");
+    (chrome.tabs.query as unknown as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: 7, windowId: 3, url: root.url }]);
+
+    await expect(trackCurrentPortalTab()).rejects.toThrow("TAB_ALREADY_TRACKED");
+  });
+
+  it("rejects a current tab in a different window from the Quest parent", async () => {
+    const root = node("root", "quest-a");
+    seed({ nodes: { root }, tabBindings: { "7": { nodeId: root.id, windowId: 3 } } }, undefined, "quest-a");
+    (chrome.tabs.query as unknown as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: 8, windowId: 4, url: "https://child.test" }]);
+
+    await expect(trackCurrentPortalTab()).rejects.toThrow("CROSS_WINDOW_PARENT");
+    expect(storedGraph()).toEqual({ nodes: { root }, tabBindings: { "7": { nodeId: root.id, windowId: 3 } } });
   });
 
   it("ignores a live opener from a completed Quest", async () => {
