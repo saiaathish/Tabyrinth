@@ -12,8 +12,6 @@ body::before { background-image: repeating-linear-gradient(90deg, transparent 0 
 .portal-drawer strong { font-size: .76rem; }
 .portal-drawer small { color: var(--ui-muted); font-size: .65rem; }
 .portal-drawer button { justify-self: start; }
-.loot-drawer { background: var(--ui-void); border: 1px solid var(--ui-ash); bottom: 64px; display: grid; gap: 8px; padding: 10px; position: fixed; right: 16px; width: min(260px, calc(100vw - 32px)); z-index: 2; }
-.loot-drawer a { color: var(--ui-bone); font-size: .72rem; }
 .surface-header, .section-heading, .action-row, .drawer-bar { align-items: center; display: flex; gap: 12px; justify-content: space-between; }
 .surface-header { border-bottom: 1px solid var(--ui-ash); padding-bottom: 16px; }
 h1, h2, p { margin-top: 0; } h1 { font: 650 1.4rem/1.1 Georgia, serif; margin-bottom: 0; } h2 { font: 650 1.15rem/1.15 Georgia, serif; margin-bottom: 8px; }
@@ -28,13 +26,22 @@ h1, h2, p { margin-top: 0; } h1 { font: 650 1.4rem/1.1 Georgia, serif; margin-bo
 .instrument-header { align-items: center; border-bottom: 1px solid var(--ui-ash); display: flex; justify-content: space-between; min-height: 36px; padding-bottom: 11px; }
 .wordmark { font: 760 .71rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .22em; }
 .quest-start { display: grid; min-height: calc(100dvh - 100px); place-content: center stretch; }
+.onboarding { display: grid; align-content: center; min-height: calc(100dvh - 100px); gap: 22px; }
+.onboarding-meta { align-items: center; display: flex; justify-content: space-between; color: var(--ui-muted); font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .12em; }
+.onboarding-copy { border-inline-start: 1px solid var(--ui-ash); padding-inline-start: 15px; }
+.onboarding-copy h1 { font: 760 clamp(1.7rem, 8vw, 2.35rem)/1.02 ui-sans-serif, system-ui, sans-serif; letter-spacing: -.055em; margin: 0; max-width: 11ch; }
+.onboarding-copy p { color: var(--ui-muted); line-height: 1.55; margin: 12px 0 0; max-width: 32ch; }
+.onboarding-steps { display: flex; gap: 14px; list-style: none; margin: 0; padding: 0; color: var(--ui-muted); font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; }
+.onboarding-steps li { align-items: center; display: flex; gap: 6px; }
+.onboarding-steps li[data-current="true"] { color: var(--ui-acid); }
+.onboarding-actions { align-items: center; display: flex; gap: 18px; }
+@media (prefers-reduced-motion: reduce) { .onboarding, .onboarding * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
 .quest-start form { display: grid; gap: 12px; }
 .quest-start label { font: 600 clamp(1.45rem, 7vw, 2.05rem)/1.08 Georgia, Cambria, serif; letter-spacing: -.025em; max-width: 12ch; text-wrap: balance; }
 .quest-start input { appearance: none; background: transparent; border: 0; border-bottom: 1px solid var(--ui-muted); border-radius: 0; color: var(--ui-bone); font: 500 .95rem/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; min-width: 0; outline: 0; padding: 13px 0 10px; }
 .quest-start input::placeholder { color: #929b9188; }
 .quest-start input:focus-visible { border-color: var(--ui-acid); box-shadow: 0 2px 0 -1px var(--ui-acid); }
 .quest-start .ui-button { justify-self: start; margin-top: 8px; }
-.arcade-entry { justify-self: start; margin-top: 20px; }
 .inline-alert { color: var(--ui-red); font-size: .72rem; margin: 16px 0 0; }
 .quest-heading { align-items: start; display: flex; gap: 16px; justify-content: space-between; padding: 24px 0 16px; }
 .quest-heading h1 { font: 650 clamp(1.4rem, 7vw, 2rem)/1.05 Georgia, Cambria, serif; letter-spacing: -.025em; max-width: 15ch; overflow-wrap: anywhere; }
@@ -58,12 +65,6 @@ h1, h2, p { margin-top: 0; } h1 { font: 650 1.4rem/1.1 Georgia, serif; margin-bo
 .decision p { color: var(--ui-muted); font-size: .7rem; margin: 5px 0 0; max-width: 43ch; }
 .decision[data-state="unsafe"], .decision[data-state="error"], .decision[data-state="missing-origin"], .decision[data-state="partial"] { border-block-color: #ff5c5c77; }
 .secondary-actions { display: flex; flex-wrap: wrap; gap: 18px; }
-.loot-composer { border-top: 1px solid var(--ui-ash); display: grid; gap: 9px; margin-top: 2px; padding-top: 13px; }
-.loot-composer label { color: var(--ui-muted); font-size: .64rem; }
-.loot-composer input { background: transparent; border: 0; border-bottom: 1px solid var(--ui-muted); color: var(--ui-bone); font: inherit; outline: 0; padding: 8px 0; }
-.loot-composer input:focus-visible { border-color: var(--ui-acid); box-shadow: 0 2px 0 -1px var(--ui-acid); }
-.loot-composer > div { align-items: center; display: flex; flex-wrap: wrap; gap: 12px; }
-.loot-composer .ui-button { font-size: .64rem; min-block-size: 2.35rem; padding: .55rem .7rem; }
 .instrument-footer { align-items: center; display: grid; gap: 14px; grid-template-columns: auto auto 1fr; margin-top: 18px; }
 .instrument-footer > :last-child { justify-self: end; }
 .collection-trigger { appearance: none; background: transparent; border: 0; color: var(--ui-muted); cursor: pointer; font: 600 .68rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 6px 0; }
@@ -110,3 +111,44 @@ h1, h2, p { margin-top: 0; } h1 { font: 650 1.4rem/1.1 Georgia, serif; margin-bo
 @keyframes instrument-pulse { to { opacity: .25; } }
 @media (max-height: 520px) { .quest-start { min-height: auto; padding: 36px 0 10px; } .quest-trail li { min-height: 43px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; transform: none !important; } }
+
+/* Rendered refinement: a single field-instrument grid keeps the route legible
+   while the acid seam only appears where a safe action is available. */
+.surface { max-width: 520px; padding-inline: clamp(16px, 4vw, 28px); }
+.surface::after { background: linear-gradient(90deg, var(--ui-acid), transparent 72%); content: ""; height: 1px; inset: 0 0 auto; opacity: .72; pointer-events: none; position: absolute; }
+.surface::before { background: linear-gradient(90deg, transparent 0 12px, #e8e3d50d 12px 13px), linear-gradient(#e8e3d508 1px, transparent 1px); background-size: 32px 32px; content: ""; inset: 0; opacity: .24; pointer-events: none; position: fixed; z-index: -1; }
+.surface > * { position: relative; }
+.instrument-header { padding-top: 4px; }
+.instrument-header .ui-signal { font-size: .62rem; }
+.quest-heading { align-items: end; border-bottom: 1px solid var(--ui-ash); margin-bottom: 8px; padding-block: 24px 16px; }
+.quest-heading h1 { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 720; letter-spacing: -.04em; }
+.quest-start { min-height: calc(100dvh - 84px); }
+.quest-start label, .decision h2, .collection-drawer > header > strong, .portal-empty h1 { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.quest-start label { font-weight: 760; letter-spacing: -.05em; }
+.quest-start form { border-inline-start: 1px solid var(--ui-ash); padding-inline-start: 15px; }
+.quest-start .ui-button { margin-top: 10px; }
+.quest-trail { margin-top: 4px; }
+.quest-trail::before { background: linear-gradient(var(--ui-ash), var(--ui-ash)) center / 1px 100% no-repeat; }
+.quest-trail li { min-height: 56px; }
+.trail-mark { border: 1px solid var(--ui-ash); font-size: .55rem; height: 15px; width: 15px; }
+.quest-trail li[data-current="true"] .trail-mark { background: var(--ui-acid); border-color: var(--ui-acid); color: #10140d; }
+.decision { background: linear-gradient(90deg, #b7f34a08, transparent 72%); border-block-color: var(--ui-ash); margin-top: 18px; padding: 18px 14px 18px 16px; position: relative; }
+.decision::before { background: var(--ui-acid); content: ""; height: 100%; inset: 0 auto 0 0; position: absolute; width: 2px; }
+.decision[data-state="unsafe"]::before, .decision[data-state="error"]::before, .decision[data-state="missing-origin"]::before, .decision[data-state="partial"]::before { background: var(--ui-red); }
+.decision .ui-button { justify-self: start; }
+.secondary-actions { gap: 14px 20px; }
+.collection-drawer { border-top-color: var(--ui-acid); }
+.portal-identity { gap: 27px; padding-top: 42px; }
+.portal-identity h1 { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 760; letter-spacing: -.045em; }
+.portal-identity p { color: var(--ui-cyan); }
+.portal-fork { border-block-color: var(--ui-ash); }
+.portal-contents li > div { border-bottom-color: var(--ui-ash); }
+.portal-contents li:hover > div { border-bottom-color: var(--ui-cyan); }
+.portal-actions { border-top: 1px solid var(--ui-ash); padding-top: 17px; }
+.portal-actions .ui-button { min-width: 145px; }
+.portal-empty { min-height: 70dvh; }
+@media (max-width: 360px) {
+  .surface { padding-inline: 14px; }
+  .portal-identity { gap: 16px; grid-template-columns: 78px minmax(0, 1fr); }
+  .folded-artifact { transform: scale(.9); transform-origin: left bottom; }
+}

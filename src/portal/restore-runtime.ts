@@ -22,6 +22,7 @@ export async function restorePortal(portal: Portal, graph: BranchGraph, adapter:
   const ordered = topologicalSort(nodes);
   const restored = new Set<string>();
   const tabs = new Map<string, number>();
+  const tabWindows = new Map<string, number | undefined>();
   try {
    const originBinding = Object.entries(graph.tabBindings).find(([, binding]) => binding.nodeId === portal.originNodeId);
    const originNode = graph.nodes[portal.originNodeId];
@@ -45,10 +46,20 @@ export async function restorePortal(portal: Portal, graph: BranchGraph, adapter:
       const parentTabId = node.parentNodeId
         ? tabs.get(node.parentNodeId) ?? (node.parentNodeId === portal.originNodeId ? originTab?.id : undefined)
         : undefined;
-      tab = await adapter.createTab({ url: node.url, windowId: parentTabId ? undefined : undefined, ...(parentTabId === undefined ? {} : { openerTabId: parentTabId }) });
+      const parentWindowId = node.parentNodeId
+        ? tabWindows.get(node.parentNodeId) ?? (node.parentNodeId === portal.originNodeId ? originTab?.windowId : undefined)
+        : originTab?.windowId;
+      // Keep every newly-created page in the selected restore window. Chrome's
+      // opener relationship is best-effort, but an explicit window prevents a
+      // restore from silently scattering a branch across browser windows.
+      const createInput: { url: string; windowId?: number; openerTabId?: number } = { url: node.url };
+      if (parentWindowId !== undefined) createInput.windowId = parentWindowId;
+      if (parentTabId !== undefined) createInput.openerTabId = parentTabId;
+      tab = await adapter.createTab(createInput);
     }
     await adapter.bind(node.id, tab.id, tab.windowId ?? null);
     tabs.set(node.id, tab.id);
+    tabWindows.set(node.id, tab.windowId);
     restored.add(node.id);
    }
 
