@@ -76,9 +76,10 @@ export type SidePanelProps = {
   onFinish?: () => void;
   onDrawer?: (drawer: DrawerName) => void;
   onUnseal?: (portal: PortalItem) => void;
+  onReplayIntro?: () => void;
 };
 
-export function SidePanel({ state, quest, trail, portals, busy = false, notice = "", drawer = null, onBegin, onAction, onFinish, onDrawer, onUnseal }: SidePanelProps) {
+export function SidePanel({ state, quest, trail, portals, busy = false, notice = "", drawer = null, onBegin, onAction, onFinish, onDrawer, onUnseal, onReplayIntro }: SidePanelProps) {
   const goalId = useId();
   const [goal, setGoal] = useState("");
   const portalsTriggerRef = useRef<HTMLButtonElement>(null);
@@ -111,6 +112,7 @@ export function SidePanel({ state, quest, trail, portals, busy = false, notice =
       </section>
       <footer className="instrument-footer">
         <button ref={portalsTriggerRef} type="button" className="collection-trigger" aria-expanded={drawer === "portals"} aria-controls="portals-drawer" onClick={() => { lastDrawerTriggerRef.current = portalsTriggerRef.current; onDrawer?.(drawer === "portals" ? null : "portals"); }}><span>{portals.length}</span> Portals</button>
+        <button type="button" className="text-control" onClick={onReplayIntro} disabled={busy}>Replay introduction</button>
       </footer>
       <Drawer open={drawer} portals={portals} busy={busy} triggerRef={lastDrawerTriggerRef} onClose={() => onDrawer?.(null)} onUnseal={(portal) => onUnseal?.(portal)} />
     </>}
@@ -145,6 +147,7 @@ function LiveSidePanel() {
   const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
   const [portals, setPortals] = useState<PortalItem[]>([]);
   const [drawer, setDrawer] = useState<DrawerName>(null);
+  const [hint, setHint] = useState("");
 
   const refresh = async () => {
     const result = await chrome.runtime.sendMessage({ type: "PORTAL_GET" });
@@ -154,6 +157,12 @@ function LiveSidePanel() {
     const nextPortals = Object.values(result?.state?.portals ?? {}) as PortalItem[];
     const nextCurrent = result?.currentNodeId ?? null;
     setGraph(nextGraph); setQuest(nextQuest); setPortals(nextPortals); setCurrentNodeId(nextCurrent);
+    const onboardingState = await chrome.storage.local.get("tabyrinth.onboarding");
+    const flags = (onboardingState["tabyrinth.onboarding"] as { completed?: boolean; hints?: { trail?: boolean; detour?: boolean; portal?: boolean } } | undefined) ?? { completed: true, hints: { trail: false, detour: false, portal: false } };
+    const liveTrail = nextCurrent ? (() => { const ids: string[] = []; let item: PortalGraph["nodes"][string] | undefined = nextGraph.nodes[nextCurrent]; while (item && !ids.includes(item.id)) { ids.unshift(item.id); item = item.parentNodeId ? nextGraph.nodes[item.parentNodeId] : undefined; } return ids; })() : [];
+    const detourCount = liveTrail.filter((id) => nextGraph.nodes[id]?.disposition === "unclassified").length;
+    if (nextQuest && liveTrail.length > 1 && !flags.hints?.trail) { setHint("NEW TRAIL · You opened a branch from the Main Path."); void chrome.storage.local.set({ "tabyrinth.onboarding": { ...flags, hints: { ...flags.hints, trail: true } } }); }
+    else if (detourCount >= 2 && !flags.hints?.detour) { setHint(`${detourCount}-TAB DETOUR · Fold it whenever you want to return.`); void chrome.storage.local.set({ "tabyrinth.onboarding": { ...flags, hints: { ...flags.hints, detour: true } } }); }
     if (!nextQuest) setState("start");
     else if (nextQuest.status === "complete") setState("complete");
     else {
@@ -192,7 +201,7 @@ function LiveSidePanel() {
   const finish = () => { if (quest) void perform(() => chrome.runtime.sendMessage({ type: "PORTAL_FINISH", questId: quest.id }), "Quest complete."); };
   const unseal = (portal: PortalItem) => { setState("restoring"); void perform(() => chrome.runtime.sendMessage({ type: "PORTAL_UNSEAL", portalId: portal.id }), "Branch unsealed."); };
   if (onboarding.state && !onboarding.state.completed && state !== "loading") return <main className="surface sidepanel" aria-labelledby="sidepanel-title"><header className="instrument-header"><span className="wordmark" id="sidepanel-title">TABYRINTH</span></header><Onboarding onComplete={onboarding.complete} /></main>;
-  return <SidePanel state={state} quest={quest} trail={trail} portals={portals} busy={busy} notice={notice} drawer={drawer} onBegin={begin} onAction={action} onFinish={finish} onDrawer={setDrawer} onUnseal={unseal} />;
+  return <SidePanel state={state} quest={quest} trail={trail} portals={portals} busy={busy} notice={hint || notice} drawer={drawer} onBegin={begin} onAction={action} onFinish={finish} onDrawer={setDrawer} onUnseal={unseal} onReplayIntro={onboarding.replay} />;
 }
 
 export function SidePanelPreview() {
