@@ -4,7 +4,7 @@ import { reduceGame } from "../game/reducer";
 import type { GameState, Message, RoomGameAction, RoomKind } from "../game/types";
 import { handleQuestMessage, handleQuestTabRemoved, isQuestMessage, reconcileQuestSession, restoreQuestTab, restoreQuestWorkspace } from "../quest/runtime";
 import { parsePortalMessage } from "../portal/messages";
-import { beginPortalQuest, capturePortalCreated, capturePortalRemoved, capturePortalUpdated, deletePortal, finishActivePortalQuest, foldPortal, getPortalState, markPortalPath, reconcilePortalSession, renamePortal, savePortalLoot, unsealPortal } from "../portal/runtime";
+import { beginPortalQuest, capturePortalCreated, capturePortalRemoved, capturePortalUpdated, deletePortal, finishActivePortalQuest, foldPortal, getPortalState, markPortalPath, reconcilePortalSession, renamePortal, savePortalLoot, trackCurrentPortalTab, unsealPortal } from "../portal/runtime";
 import { portalStorage } from "../portal/storage";
 import { portalReducer } from "../portal/reducer";
 
@@ -189,6 +189,7 @@ export async function handleMessage(value: unknown, sender: chrome.runtime.Messa
     if (!isPortalSender(sender)) return undefined;
     return enqueueMutation(async () => {
       if (portalMessage.type === "PORTAL_GET") return getPortalState();
+      if (portalMessage.type === "PORTAL_TRACK_CURRENT") return trackCurrentPortalTab();
       if (portalMessage.type === "PORTAL_BEGIN") return beginPortalQuest(portalMessage.title);
       if (portalMessage.type === "PORTAL_FINISH") return finishActivePortalQuest(portalMessage.questId);
       if (portalMessage.type === "PORTAL_MARK_PATH") return markPortalPath(portalMessage.nodeId);

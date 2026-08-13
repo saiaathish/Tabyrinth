@@ -4,6 +4,7 @@ import { parsePortalMessage } from "./messages";
 describe("Portal message boundary", () => {
   it("accepts the exact operations", () => {
     expect(parsePortalMessage({ type: "PORTAL_GET" })).toEqual({ type: "PORTAL_GET" });
+    expect(parsePortalMessage({ type: "PORTAL_TRACK_CURRENT" })).toEqual({ type: "PORTAL_TRACK_CURRENT" });
     expect(parsePortalMessage({ type: "PORTAL_BEGIN", title: "  Ship release " })).toEqual({ type: "PORTAL_BEGIN", title: "Ship release" });
     expect(parsePortalMessage({ type: "PORTAL_FINISH", questId: "q" })).toEqual({ type: "PORTAL_FINISH", questId: "q" });
     expect(parsePortalMessage({ type: "PORTAL_SAVE_LOOT", nodeId: "n", note: "  key fact  ", close: true })).toEqual({ type: "PORTAL_SAVE_LOOT", nodeId: "n", note: "key fact", close: true });
@@ -15,6 +16,7 @@ describe("Portal message boundary", () => {
   });
   it("rejects unknown fields and malformed operations", () => {
     expect(parsePortalMessage({ type: "PORTAL_GET", extra: true })).toBeNull();
+    expect(parsePortalMessage({ type: "PORTAL_TRACK_CURRENT", extra: true })).toBeNull();
     expect(parsePortalMessage({ type: "PORTAL_BEGIN", title: " " })).toBeNull();
     expect(parsePortalMessage({ type: "PORTAL_RENAME", portalId: "p", title: " " })).toBeNull();
     expect(parsePortalMessage({ type: "PORTAL_SAVE_LOOT", nodeId: "n", close: "yes" })).toBeNull();

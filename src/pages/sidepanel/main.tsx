@@ -6,7 +6,7 @@ import "../surfaces.css";
 import { Onboarding, useOnboarding } from "./onboarding";
 
 export type SidePanelState = "loading" | "start" | "active" | "nothing-to-fold" | "unsupported" | "unsafe" | "missing-origin" | "sealed" | "restoring" | "partial" | "error" | "complete";
-export type SidePanelAction = "fold" | "keep" | "loot";
+export type SidePanelAction = "fold" | "keep" | "loot" | "track";
 export type TrailNode = { id: string; title: string; url: string; disposition: "path" | "unclassified" | "loot" | "portal"; status: string };
 export type PortalGraph = { nodes: Record<string, { id: string; questId: string; title: string | null; url: string | null; disposition: TrailNode["disposition"]; parentNodeId: string | null; status: string }>; tabBindings: Record<string, { nodeId: string; windowId: number | null }> };
 export type LootItem = { id: string; title: string; url: string; note?: string };
@@ -72,6 +72,7 @@ export type SidePanelProps = {
   portals: PortalItem[];
   loot: LootItem[];
   busy?: boolean;
+  trackable?: boolean;
   notice?: string;
   drawer?: DrawerName;
   onBegin?: (title: string) => void;
@@ -86,7 +87,7 @@ export type SidePanelProps = {
   onLootSave?: (note: string, close: boolean) => void;
 };
 
-export function SidePanel({ state, quest, trail, portals, loot, busy = false, notice = "", drawer = null, onBegin, onAction, onFinish, onDrawer, onUnseal, onReplayIntro, onArcade, lootComposer = false, onLootComposer, onLootSave }: SidePanelProps) {
+export function SidePanel({ state, quest, trail, portals, loot, busy = false, trackable = false, notice = "", drawer = null, onBegin, onAction, onFinish, onDrawer, onUnseal, onReplayIntro, onArcade, lootComposer = false, onLootComposer, onLootSave }: SidePanelProps) {
   const goalId = useId();
   const [goal, setGoal] = useState("");
   const portalsTriggerRef = useRef<HTMLButtonElement>(null);
@@ -113,6 +114,7 @@ export function SidePanel({ state, quest, trail, portals, loot, busy = false, no
       <Trail trail={trail} />
       <section className="decision" data-state={state}>
         <div aria-live="polite"><h2>{stateCopy?.title}</h2>{stateCopy?.body && <p>{stateCopy.body}</p>}</div>
+        {trackable && <button type="button" className="text-control" disabled={busy} onClick={() => onAction?.("track")}>Track this tab</button>}
         {state === "active" && <Button disabled={busy} onClick={() => onAction?.("fold")}>{busy ? "Folding…" : `FOLD ${Math.max(1, trail.filter((node) => node.disposition !== "path").length)}-TAB DETOUR`}</Button>}
         {state === "unsafe" && <Button disabled={busy} onClick={() => onAction?.("fold")}>Retry fold</Button>}
         {state !== "complete" && <div className="secondary-actions">
@@ -212,6 +214,10 @@ function LiveSidePanel() {
   const trail = graph && currentNodeId ? (() => { const nodes: TrailNode[] = []; const seen = new Set<string>(); let node: PortalGraph["nodes"][string] | undefined = graph.nodes[currentNodeId]; while (node && !seen.has(node.id)) { seen.add(node.id); nodes.unshift({ id: node.id, title: node.title ?? node.url ?? "Untitled page", url: node.url ?? "", disposition: node.disposition, status: node.status }); node = node.parentNodeId ? graph.nodes[node.parentNodeId] : undefined; } return nodes.slice(-7); })() : [];
   const begin = (title: string) => { void perform(() => chrome.runtime.sendMessage({ type: "PORTAL_BEGIN", title }), "Quest begun."); };
   const action = (kind: SidePanelAction) => {
+    if (kind === "track") {
+      void perform(() => chrome.runtime.sendMessage({ type: "PORTAL_TRACK_CURRENT" }), "Tab tracked.");
+      return;
+    }
     if (!quest || !currentNodeId) { setState("unsupported"); return; }
     if (kind === "fold") void perform(() => chrome.runtime.sendMessage({ type: "PORTAL_FOLD", questId: quest.id, currentNodeId }), "Branch sealed.");
     if (kind === "keep") void perform(() => chrome.runtime.sendMessage({ type: "PORTAL_MARK_PATH", nodeId: currentNodeId }), "Kept on path.");
@@ -227,7 +233,7 @@ function LiveSidePanel() {
     });
   };
   if (onboarding.state && !onboarding.state.completed && state !== "loading") return <main className="surface sidepanel" aria-labelledby="sidepanel-title"><header className="instrument-header"><span className="wordmark" id="sidepanel-title">TABYRINTH</span></header><Onboarding onComplete={onboarding.complete} /></main>;
-  return <SidePanel state={state} quest={quest} trail={trail} portals={portals} loot={loot} busy={busy} notice={hint || notice} drawer={drawer} lootComposer={lootComposer} onLootComposer={setLootComposer} onLootSave={saveLoot} onBegin={begin} onAction={action} onFinish={finish} onArcade={arcade} onDrawer={setDrawer} onUnseal={unseal} onReplayIntro={onboarding.replay} />;
+  return <SidePanel state={state} quest={quest} trail={trail} portals={portals} loot={loot} busy={busy} trackable={Boolean(quest?.status === "active" && !currentNodeId)} notice={hint || notice} drawer={drawer} lootComposer={lootComposer} onLootComposer={setLootComposer} onLootSave={saveLoot} onBegin={begin} onAction={action} onFinish={finish} onArcade={arcade} onDrawer={setDrawer} onUnseal={unseal} onReplayIntro={onboarding.replay} />;
 }
 
 export function SidePanelPreview() {
