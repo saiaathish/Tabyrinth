@@ -1,0 +1,33 @@
+{
+  "build": "working-tree",
+  "chromeVersion": "Chrome/151.0.7922.109",
+  "extensionId": "fignfifoniblkonapihmkfakmlgkbkcf",
+  "passed": [
+    {
+      "label": "dist manifest and entrypoints"
+    },
+    {
+      "label": "isolated Chrome launched",
+      "detail": "Chrome/151.0.7922.109"
+    },
+    {
+      "label": "extension service worker discovered",
+      "detail": "fignfifoniblkonapihmkfakmlgkbkcf"
+    },
+    {
+      "label": "deterministic fixture loaded"
+    },
+    {
+      "label": "extension popup messaging page opened"
+    }
+  ],
+  "failed": [
+    {
+      "label": "generated extension E2E",
+      "detail": "popup runtime API unavailable: popup runtime API unavailable (1; {\"href\":\"chrome-error://chromewebdata/\",\"chrome\":\"object\",\"keys\":[\"loadTimes\",\"csi\",\"app\"],\"runtime\":\"undefined\",\"tabs\":\"undefined\"})"
+    }
+  ],
+  "unverified": [],
+  "screenshots": [],
+  "finishedAt": "2026-08-13T15:41:19.987Z"
+}

@@ -4,7 +4,7 @@ TABYRINTH helps you explore browser rabbit holes without losing your main task. 
 
 ## Current state
 
-This local `codex/prd-completion` branch is clean at the latest committed checkpoint, with Portal Fold as the flagship, Arcade compatibility restored, and minimal Loot exposed behind the Side Panel. Final untouched-profile Chrome critical path remains **UNVERIFIED**.
+The current `codex/prd-completion` release patch keeps Portal Fold as the flagship and moves the Side Panel to Quest, Main Path, Detour, and Portal recovery. The automated suite is **158 tests passing**; final untouched-profile Chrome critical path remains **UNVERIFIED**.
 
 The complete judge path (real Chrome tab reorder, Vault/Boss puzzle, VOID tab, and victory) remains **UNVERIFIED** because no direct real-Chrome critical-path run is recorded. Do not present those behaviors as browser-proven until direct Chrome evidence exists.
 
@@ -55,6 +55,7 @@ See [docs/CI_CONTRACT.md](docs/CI_CONTRACT.md) for the CI contract and [docs/DEM
 - Automated checks do not prove real Chrome tab creation, closure, service-worker wake behavior, or visual presentation.
 - Existing copied-profile CDP evidence covers the earlier Portal runtime checkpoint; it is not re-used as fresh proof for the compatibility recovery.
 - Chrome Web Store packaging and distribution are out of scope.
+- On this macOS Chrome 151 host, an isolated CDP launch discovered the unpacked MV3 service worker but Chrome loaded test-created extension pages as `chrome-error://chromewebdata`; the generated extension-page E2E therefore remains an external browser limitation, not a product pass claim.
 
 ## AO build evidence
 

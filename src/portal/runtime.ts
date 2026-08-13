@@ -1,7 +1,7 @@
 import { foldBranch, type FoldTab } from "./fold-runtime";
 import { restorePortal } from "./restore-runtime";
 import { portalReducer } from "./reducer";
-import { portalStorage } from "./storage";
+import { portalStorage, type PendingPortalNavigation } from "./storage";
 import type { BranchGraph } from "../branch/types";
 import { BranchRuntime } from "../branch/runtime";
 import { emptyBranchGraph } from "../branch/types";
@@ -18,9 +18,10 @@ export async function getPortalState() {
   await reconcilePortalSession();
   const graph = await graphWithSession();
   const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
-  const activeTabId = activeTabs[0]?.id;
+  const activeTab = activeTabs[0];
+  const activeTabId = activeTab?.id;
   const currentNodeId = activeTabId === undefined ? null : graph.tabBindings[String(activeTabId)]?.nodeId ?? null;
-  return { state: await portalStorage.get(), graph, currentNodeId, quest: await portalStorage.getActiveQuest() ?? await portalStorage.getLatestQuest(), loot: await portalStorage.getLoot() };
+  return { state: await portalStorage.get(), graph, currentNodeId, activeTabSupported: Boolean(activeTab && isSupportedWebUrl(activeTab.url)), quest: await portalStorage.getActiveQuest() ?? await portalStorage.getLatestQuest(), loot: await portalStorage.getLoot() };
 }
 
 /**
@@ -47,15 +48,19 @@ export async function reconcilePortalSession(): Promise<void> {
     const valid = Boolean(
       node
       && node.status === "live"
-      && node.url
       && tab
       && tab.id === tabId
       && Number.isInteger(binding.windowId)
       && binding.windowId! >= 0
       && tab.windowId === binding.windowId
-      && tab.url === node.url,
     );
-    if (valid) continue;
+    if (valid && tab && node) {
+      if (node.url !== tab.url || node.title !== tab.title || node.faviconUrl !== tab.favIconUrl) {
+        nextNodes[node.id] = { ...node, url: tab.url ?? node.url, title: tab.title ?? node.title, faviconUrl: tab.favIconUrl ?? node.faviconUrl, updatedAt: Date.now() };
+        changed = true;
+      }
+      continue;
+    }
 
     delete nextBindings[rawTabId];
     changed = true;
@@ -113,16 +118,28 @@ export async function trackCurrentPortalTab() {
   const graph = await graphWithSession();
   if (graph.tabBindings[String(tab.id)]) throw new Error("TAB_ALREADY_TRACKED");
 
-  const parentNodeId = quest.currentNodeId ?? quest.rootNodeId;
-  const parentNode = graph.nodes[parentNodeId];
-  const parentEntry = Object.entries(graph.tabBindings).find(([, binding]) => binding.nodeId === parentNodeId);
-  if (!parentNode || parentNode.questId !== quest.id || parentNode.status !== "live" || !parentEntry) throw new Error("QUEST_ORIGIN_UNAVAILABLE");
-
-  const parentTabId = Number(parentEntry[0]);
-  const parentBinding = parentEntry[1];
-  if (!Number.isInteger(parentTabId) || parentBinding.windowId === null || parentBinding.windowId !== tab.windowId) throw new Error("CROSS_WINDOW_PARENT");
-  const parentTab = await chrome.tabs.get(parentTabId).catch(() => null);
-  if (!parentTab || parentTab.id !== parentTabId || parentTab.windowId !== tab.windowId || parentTab.url !== parentNode.url || !isSupportedWebUrl(parentTab.url)) throw new Error("QUEST_ORIGIN_UNAVAILABLE");
+  const parentCandidates = [quest.currentNodeId, quest.rootNodeId].filter((nodeId, index, ids): nodeId is string => Boolean(nodeId) && ids.indexOf(nodeId) === index);
+  let parentNode: BranchGraph["nodes"][string] | undefined;
+  let parentTabId: number | undefined;
+  let crossWindowParent = false;
+  for (const candidateId of parentCandidates) {
+    const candidate = graph.nodes[candidateId];
+    const entry = Object.entries(graph.tabBindings).find(([, binding]) => binding.nodeId === candidateId);
+    if (!candidate || candidate.questId !== quest.id || candidate.status !== "live" || !entry) continue;
+    const candidateTabId = Number(entry[0]);
+    const binding = entry[1];
+    if (!Number.isInteger(candidateTabId) || binding.windowId === null) continue;
+    if (binding.windowId !== tab.windowId) {
+      crossWindowParent = true;
+      continue;
+    }
+    const candidateTab = await chrome.tabs.get(candidateTabId).catch(() => null);
+    if (!candidateTab || candidateTab.id !== candidateTabId || candidateTab.windowId !== tab.windowId || !isSupportedWebUrl(candidateTab.url)) continue;
+    parentNode = candidate;
+    parentTabId = candidateTabId;
+    break;
+  }
+  if (!parentNode || parentTabId === undefined) throw new Error(crossWindowParent ? "CROSS_WINDOW_PARENT" : "UNTRACKED_TAB_PARENT_UNAVAILABLE");
 
   const runtime = new BranchRuntime(graph);
   const childNodeId = runtime.onCreated(quest.id, {
@@ -148,32 +165,103 @@ export async function finishActivePortalQuest(questId: string) {
   return completed;
 }
 
-export async function capturePortalCreated(tab: chrome.tabs.Tab) {
-  if (tab.id === undefined || tab.openerTabId === undefined) return;
+async function capturePortalCreatedFromSource(tab: chrome.tabs.Tab, sourceTabId: number): Promise<boolean> {
+  if (tab.id === undefined) return false;
   const graph = await graphWithSession();
-  if (graph.tabBindings[String(tab.id)]) return;
-  const openerBinding = graph.tabBindings[String(tab.openerTabId)];
+  const openerBinding = graph.tabBindings[String(sourceTabId)];
   const openerNode = openerBinding ? graph.nodes[openerBinding.nodeId] : undefined;
-  if (!openerBinding || !openerNode || openerNode.status !== "live") return;
+  if (!openerBinding || !openerNode || openerNode.status !== "live") return false;
+  const existingBinding = graph.tabBindings[String(tab.id)];
+  if (existingBinding) {
+    const existingNode = graph.nodes[existingBinding.nodeId];
+    return existingNode?.parentNodeId === openerNode.id;
+  }
   const activeQuest = await portalStorage.getActiveQuest();
-  if (!activeQuest || activeQuest.id !== openerNode.questId) return;
-  if (openerBinding.windowId !== null && tab.windowId !== undefined && openerBinding.windowId !== tab.windowId) return;
+  if (!activeQuest || activeQuest.id !== openerNode.questId) return false;
+  if (openerBinding.windowId !== null && tab.windowId !== undefined && openerBinding.windowId !== tab.windowId) return false;
+  if (!isSupportedWebUrl(tab.url)) return false;
   const runtime = new BranchRuntime(graph);
-  runtime.onCreated(openerNode.questId, { tabId: tab.id, openerTabId: tab.openerTabId, windowId: tab.windowId, url: tab.url, title: tab.title, faviconUrl: tab.favIconUrl });
+  runtime.onCreated(openerNode.questId, { tabId: tab.id, openerTabId: sourceTabId, windowId: tab.windowId, url: tab.url, title: tab.title, faviconUrl: tab.favIconUrl });
   await persistGraph(runtime.snapshot());
   const quest = await portalStorage.getActiveQuest();
   const childNodeId = runtime.snapshot().tabBindings[String(tab.id)]?.nodeId;
   if (quest?.id === openerNode.questId && childNodeId) await portalStorage.putQuest({ ...quest, currentNodeId: childNodeId });
+  return true;
+}
+
+export type CreatedNavigationTarget = { sourceTabId: number; sourceFrameId: number; tabId: number; url: string };
+
+export function isSupportedCreatedNavigationTarget(details: CreatedNavigationTarget): boolean {
+  if (!Number.isInteger(details.sourceTabId) || details.sourceTabId < 0) return false;
+  if (!Number.isInteger(details.tabId) || details.tabId < 0 || details.tabId === details.sourceTabId) return false;
+  if (!Number.isInteger(details.sourceFrameId) || details.sourceFrameId < 0 || typeof details.url !== "string") return false;
+  try {
+    const url = new URL(details.url);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/** Correlate an exact Chrome source→target signal, or retain it briefly until tabs.onCreated supplies metadata. */
+export async function capturePortalNavigationTarget(details: CreatedNavigationTarget): Promise<void> {
+  if (!isSupportedCreatedNavigationTarget(details)) return;
+  const graph = await graphWithSession();
+  const sourceBinding = graph.tabBindings[String(details.sourceTabId)];
+  const sourceNode = sourceBinding ? graph.nodes[sourceBinding.nodeId] : undefined;
+  const activeQuest = await portalStorage.getActiveQuest();
+  if (!sourceBinding || !sourceNode || sourceNode.status !== "live" || !activeQuest || activeQuest.id !== sourceNode.questId) return;
+  const pending = await portalStorage.getPendingNavigations();
+  const record: PendingPortalNavigation = { sourceTabId: details.sourceTabId, targetTabId: details.tabId, url: details.url, createdAt: Date.now() };
+  pending[String(details.tabId)] = record;
+  await portalStorage.setPendingNavigations(pending);
+  const target = await chrome.tabs.get(details.tabId).catch(() => null);
+  if (target) {
+    if (target.openerTabId === undefined || target.openerTabId === details.sourceTabId) await capturePortalCreatedFromSource({ ...target, url: target.url ?? details.url } as chrome.tabs.Tab, details.sourceTabId);
+    const latestPending = await portalStorage.getPendingNavigations();
+    delete latestPending[String(details.tabId)];
+    await portalStorage.setPendingNavigations(latestPending);
+    return;
+  }
+}
+
+export async function capturePortalCreated(tab: chrome.tabs.Tab) {
+  if (tab.id === undefined) return;
+  const pending = await portalStorage.getPendingNavigations();
+  const navigation = pending[String(tab.id)];
+  if (navigation) {
+    delete pending[String(tab.id)];
+    await portalStorage.setPendingNavigations(pending);
+    if (Date.now() - navigation.createdAt > 30_000) return;
+    if (tab.openerTabId !== undefined && tab.openerTabId !== navigation.sourceTabId) return;
+    await capturePortalCreatedFromSource(tab, tab.openerTabId ?? navigation.sourceTabId);
+    return;
+  }
+  if (tab.openerTabId !== undefined) {
+    await capturePortalCreatedFromSource(tab, tab.openerTabId);
+    return;
+  }
+  return;
 }
 
 export async function capturePortalUpdated(tabId: number, tab: chrome.tabs.Tab) {
+  if (tab.id !== undefined && !(await graphWithSession()).tabBindings[String(tab.id)]) {
+    await capturePortalCreated(tab);
+  }
   const graph = await graphWithSession();
   const runtime = new BranchRuntime(graph);
-  runtime.onUpdated(tabId, { url: tab.url, title: tab.title, faviconUrl: tab.favIconUrl, windowId: tab.windowId });
+  runtime.onUpdated(tabId, {
+    ...(tab.url !== undefined ? { url: tab.url } : {}),
+    ...(tab.title !== undefined ? { title: tab.title } : {}),
+    ...(tab.favIconUrl !== undefined ? { faviconUrl: tab.favIconUrl } : {}),
+    ...(tab.windowId !== undefined ? { windowId: tab.windowId } : {}),
+  });
   await persistGraph(runtime.snapshot());
 }
 
 export async function capturePortalRemoved(tabId: number) {
+  const pending = await portalStorage.getPendingNavigations();
+  if (pending[String(tabId)]) { delete pending[String(tabId)]; await portalStorage.setPendingNavigations(pending); }
   const graph = await graphWithSession();
   const runtime = new BranchRuntime(graph);
   runtime.onRemoved(tabId);

@@ -25,6 +25,37 @@ const makeState = (rooms: RoomSpec[] = [
   revision: 0,
 });
 
+describe("webNavigation correlation contract", () => {
+  beforeEach(() => vi.resetModules());
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("registers the optional target listener once and accepts only exact supported records", async () => {
+    const mock = createChromeMock();
+    vi.stubGlobal("chrome", mock.chrome);
+    const { isSupportedCreatedNavigationTarget, registerServiceWorkerListeners } = await import("./service-worker");
+
+    expect(mock.listeners.createdNavigationTarget.listeners).toHaveLength(1);
+    registerServiceWorkerListeners();
+    expect(mock.listeners.createdNavigationTarget.listeners).toHaveLength(1);
+
+    expect(isSupportedCreatedNavigationTarget({ sourceTabId: 7, sourceFrameId: 0, tabId: 8, url: "https://child.test/" })).toBe(true);
+    for (const details of [
+      { sourceTabId: 7, sourceFrameId: 0, tabId: 8, url: "chrome://extensions" },
+      { sourceTabId: 7, sourceFrameId: 0, tabId: 7, url: "https://same-tab.test/" },
+      { sourceTabId: -1, sourceFrameId: 0, tabId: 8, url: "https://child.test/" },
+      { sourceTabId: 7, sourceFrameId: 0, tabId: 8, url: "not a url" },
+    ]) expect(isSupportedCreatedNavigationTarget(details)).toBe(false);
+  });
+
+  it("does not mutate graph or infer lineage when navigation events arrive", async () => {
+    const mock = createChromeMock();
+    vi.stubGlobal("chrome", mock.chrome);
+    await import("./service-worker");
+    mock.listeners.createdNavigationTarget.listeners[0]!({ sourceTabId: 7, sourceFrameId: 0, tabId: 8, url: "https://child.test/" });
+    expect(mock.session).toEqual({});
+  });
+});
+
 const roomSender = (tabId = 11, roomId = "entrance", runId = "run") => ({
   url: `chrome-extension://test/room.html?run=${runId}&room=${roomId}`,
   tab: { id: tabId, url: `chrome-extension://test/room.html?run=${runId}&room=${roomId}` },

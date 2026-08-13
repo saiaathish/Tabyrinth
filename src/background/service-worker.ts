@@ -4,11 +4,12 @@ import { reduceGame } from "../game/reducer";
 import type { GameState, Message, RoomGameAction, RoomKind } from "../game/types";
 import { handleQuestMessage, handleQuestTabRemoved, isQuestMessage, reconcileQuestSession, restoreQuestTab, restoreQuestWorkspace } from "../quest/runtime";
 import { parsePortalMessage } from "../portal/messages";
-import { beginPortalQuest, capturePortalCreated, capturePortalRemoved, capturePortalUpdated, deletePortal, finishActivePortalQuest, foldPortal, getPortalState, markPortalPath, reconcilePortalSession, renamePortal, savePortalLoot, trackCurrentPortalTab, unsealPortal } from "../portal/runtime";
+import { beginPortalQuest, capturePortalCreated, capturePortalNavigationTarget, capturePortalRemoved, capturePortalUpdated, deletePortal, finishActivePortalQuest, foldPortal, getPortalState, isSupportedCreatedNavigationTarget, markPortalPath, reconcilePortalSession, renamePortal, savePortalLoot, trackCurrentPortalTab, unsealPortal } from "../portal/runtime";
 import { portalStorage } from "../portal/storage";
 import { portalReducer } from "../portal/reducer";
 
 let registered = false;
+let navigationTargetRegistered = false;
 let reconcileTimer: ReturnType<typeof setTimeout> | undefined;
 let mutationQueue: Promise<void> = Promise.resolve();
 
@@ -117,6 +118,16 @@ const reconcileQuest = () => {
   void enqueueMutation(async () => { await reconcilePortalSession(); await reconcileQuestSession(); await restoreQuestWorkspace(); });
 };
 
+export function registerCreatedNavigationTargetListener() {
+  if (navigationTargetRegistered || !chrome.webNavigation?.onCreatedNavigationTarget) return;
+  navigationTargetRegistered = true;
+  chrome.webNavigation.onCreatedNavigationTarget.addListener((details) => {
+    if (isSupportedCreatedNavigationTarget(details)) void enqueueMutation(() => capturePortalNavigationTarget(details));
+  });
+}
+
+export { isSupportedCreatedNavigationTarget };
+
 async function onRemoved(tabId: number) {
   const portalSession = await portalStorage.getSession();
   const portalId = Object.entries(portalSession.portalTabIds).find(([, id]) => id === tabId)?.[0];
@@ -165,6 +176,7 @@ async function handleGameAction(message: Extract<Message, { type: "GAME_ACTION" 
 export function registerServiceWorkerListeners() {
   if (registered) return;
   registered = true;
+  registerCreatedNavigationTargetListener();
   chrome.action?.onClicked?.addListener((tab) => { if (tab.windowId !== undefined) void chrome.sidePanel?.open({ windowId: tab.windowId }); });
   chrome.tabs.onMoved.addListener(() => reconcile());
   chrome.tabs.onActivated?.addListener(() => reconcile());

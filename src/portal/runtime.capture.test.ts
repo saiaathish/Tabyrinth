@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BranchGraph, BranchNode } from "../branch/types";
-import { capturePortalCreated, reconcilePortalSession, trackCurrentPortalTab } from "./runtime";
+import { capturePortalCreated, capturePortalUpdated, reconcilePortalSession, trackCurrentPortalTab } from "./runtime";
 import { BRANCH_GRAPH_KEY, PORTAL_QUESTS_KEY, PORTAL_SESSION_KEY, type PortalSession } from "./storage";
 
 const local: Record<string, unknown> = {};
@@ -74,17 +74,50 @@ describe("Portal Chrome ancestry capture", () => {
     expect((local[BRANCH_GRAPH_KEY] as BranchGraph).nodes.live?.status).toBe("live");
   });
 
-  it("detaches a drifted binding without closing the durable node or Portal tabs", async () => {
+  it("keeps a live binding when the same tab navigates and refreshes its durable metadata", async () => {
     const drifted = node("drifted", "quest-a");
     seed({ nodes: { drifted }, tabBindings: { "7": { nodeId: drifted.id, windowId: 3 } } });
     session[PORTAL_SESSION_KEY] = { portalTabIds: { saved: 90 }, bindings: { "7": { nodeId: drifted.id, windowId: 3 } } } satisfies PortalSession;
-    (chrome.tabs.get as unknown as ReturnType<typeof vi.fn>) = vi.fn(async (id: number) => ({ id, windowId: 3, url: "https://different.test" }));
+    (chrome.tabs.get as unknown as ReturnType<typeof vi.fn>) = vi.fn(async (id: number) => ({ id, windowId: 3, url: "https://different.test", title: "Different", favIconUrl: "icon" }));
 
     await reconcilePortalSession();
 
-    expect((session[PORTAL_SESSION_KEY] as PortalSession).bindings).toEqual({});
+    expect((session[PORTAL_SESSION_KEY] as PortalSession).bindings).toEqual({ "7": { nodeId: drifted.id, windowId: 3 } });
     expect((session[PORTAL_SESSION_KEY] as PortalSession).portalTabIds).toEqual({ saved: 90 });
     expect((local[BRANCH_GRAPH_KEY] as BranchGraph).nodes.drifted?.status).toBe("live");
+    expect((local[BRANCH_GRAPH_KEY] as BranchGraph).nodes.drifted).toMatchObject({ url: "https://different.test", title: "Different", faviconUrl: "icon" });
+  });
+
+  it("updates a bound node in place without erasing omitted Chrome metadata", async () => {
+    const original = node("original", "quest-a");
+    seed({ nodes: { original }, tabBindings: { "7": { nodeId: original.id, windowId: 3 } } });
+
+    await capturePortalUpdated(7, { id: 7, windowId: 3, url: "https://google.test", title: "Google" } as chrome.tabs.Tab);
+
+    const updated = (local[BRANCH_GRAPH_KEY] as BranchGraph).nodes.original;
+    expect(updated).toMatchObject({ id: original.id, url: "https://google.test", title: "Google", faviconUrl: null, status: "live" });
+    expect((session[PORTAL_SESSION_KEY] as PortalSession).bindings).toEqual({ "7": { nodeId: original.id, windowId: 3 } });
+  });
+
+  it("falls back to the live Quest root when currentNodeId has no live binding", async () => {
+    const root = node("root", "quest-a");
+    const stale = { ...node("stale", "quest-a"), parentNodeId: root.id };
+    seed({ nodes: { root, stale }, tabBindings: { "7": { nodeId: root.id, windowId: 3 } } }, undefined, "quest-a");
+    local[PORTAL_QUESTS_KEY] = [{ id: "quest-a", title: "Quest", rootNodeId: root.id, currentNodeId: stale.id, status: "active", createdAt: 1, completedAt: null }];
+    (chrome.tabs.query as unknown as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: 8, windowId: 3, url: "https://child.test", title: "Child" }]);
+    (chrome.tabs.get as unknown as ReturnType<typeof vi.fn>) = vi.fn(async (id: number) => id === 7 ? { id, windowId: 3, url: root.url } : null);
+
+    const result = await trackCurrentPortalTab();
+
+    expect(result.graph.nodes[result.currentNodeId]?.parentNodeId).toBe(root.id);
+  });
+
+  it("does not confuse an unavailable parent with origin loss", async () => {
+    const root = node("root", "quest-a");
+    seed({ nodes: { root }, tabBindings: {} }, undefined, "quest-a");
+    (chrome.tabs.query as unknown as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: 8, windowId: 3, url: "https://child.test" }]);
+
+    await expect(trackCurrentPortalTab()).rejects.toThrow("UNTRACKED_TAB_PARENT_UNAVAILABLE");
   });
 
   it("inherits Quest ownership only from the explicit live opener", async () => {

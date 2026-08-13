@@ -4,7 +4,7 @@ html { background: var(--ui-void); color-scheme: dark; }
 body { margin: 0; min-width: 280px; background: radial-gradient(circle at 82% 5%, #26312855 0, transparent 27%), var(--ui-void); }
 body::before { background-image: repeating-linear-gradient(90deg, transparent 0 11px, #e8e3d503 12px 13px); content: ""; inset: 0; opacity: .35; pointer-events: none; position: fixed; }
 .surface { color: var(--ui-bone); font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 0 auto; max-width: 460px; min-height: 100dvh; padding: 18px 16px 84px; position: relative; }
-.surface-notice { background: var(--ui-charcoal); border-inline-start: 2px solid currentColor; bottom: 12px; color: var(--ui-acid); font-size: .68rem; left: 16px; margin: 0; max-width: calc(100vw - 32px); padding: 7px 10px; position: fixed; z-index: 5; }
+.surface-notice { background: var(--ui-charcoal); border-inline-start: 2px solid currentColor; color: var(--ui-acid); font-size: .68rem; margin: 18px 0 0; max-width: 100%; overflow-wrap: anywhere; padding: 7px 10px; }
 .live-drawer { bottom: 34px; position: fixed; right: 16px; }
 .portal-drawer-toggle { bottom: 58px; position: fixed; right: 16px; }
 .portal-drawer { background: var(--ui-void); border: 1px solid var(--ui-ash); bottom: 88px; display: grid; gap: 10px; padding: 10px; position: fixed; right: 16px; width: min(280px, calc(100vw - 32px)); z-index: 2; }
@@ -127,7 +127,6 @@ h1, h2, p { margin-top: 0; } h1 { font: 650 1.4rem/1.1 Georgia, serif; margin-bo
 .quest-start label { font-weight: 760; letter-spacing: -.05em; }
 .quest-start form { border-inline-start: 1px solid var(--ui-ash); padding-inline-start: 15px; }
 .quest-start .ui-button { margin-top: 10px; }
-.arcade-entry { justify-self: start; margin-top: 4px; }
 .quest-trail { margin-top: 4px; }
 .quest-trail::before { background: linear-gradient(var(--ui-ash), var(--ui-ash)) center / 1px 100% no-repeat; }
 .quest-trail li { min-height: 56px; }
@@ -136,14 +135,9 @@ h1, h2, p { margin-top: 0; } h1 { font: 650 1.4rem/1.1 Georgia, serif; margin-bo
 .decision { background: linear-gradient(90deg, #b7f34a08, transparent 72%); border-block-color: var(--ui-ash); margin-top: 18px; padding: 18px 14px 18px 16px; position: relative; }
 .decision::before { background: var(--ui-acid); content: ""; height: 100%; inset: 0 auto 0 0; position: absolute; width: 2px; }
 .decision[data-state="unsafe"]::before, .decision[data-state="error"]::before, .decision[data-state="missing-origin"]::before, .decision[data-state="partial"]::before { background: var(--ui-red); }
+.decision[data-state="untracked"]::before { background: var(--ui-cyan); }
 .decision .ui-button { justify-self: start; }
 .secondary-actions { gap: 14px 20px; }
-.loot-composer { border-top: 1px solid var(--ui-ash); display: grid; gap: 9px; margin-top: 2px; padding-top: 13px; }
-.loot-composer label { color: var(--ui-muted); font-size: .64rem; }
-.loot-composer input { background: transparent; border: 0; border-bottom: 1px solid var(--ui-muted); color: var(--ui-bone); font: inherit; outline: 0; padding: 8px 0; }
-.loot-composer input:focus-visible { border-color: var(--ui-acid); box-shadow: 0 2px 0 -1px var(--ui-acid); }
-.loot-composer > div { align-items: center; display: flex; flex-wrap: wrap; gap: 12px; }
-.loot-composer .ui-button { font-size: .64rem; min-block-size: 2.35rem; padding: .55rem .7rem; }
 .collection-drawer { border-top-color: var(--ui-acid); }
 .portal-identity { gap: 27px; padding-top: 42px; }
 .portal-identity h1 { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 760; letter-spacing: -.045em; }
