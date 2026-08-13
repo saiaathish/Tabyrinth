@@ -11,7 +11,7 @@ Suggested files:
 - `MANUAL_TEMPLATE.md` — real-browser critical-path record.
 
 Verified coordination records currently include AO sessions `tabyrinth-5` through
-`tabyrinth-37` where listed in `../AO_BUILD_LOG.md`. GitHub records show recorded PRs #1–#16, all merged; PR #14 merge SHA is `bc8f0b59c74b6b054847afeb924eb1b4d7cdd921` and PR #16 merge SHA is `ab16c1c9b0bb58505357b311f9983be561e1d1b5`. Current CI/review details are listed in the build log. See
+`tabyrinth-37` where listed in `../AO_BUILD_LOG.md`. GitHub records show PRs #1–#18: #1–#17 are merged and #18 is open. Published `main` is PR #17 merge SHA `625eef238ae7f6dac11193665527e086d5e47225`; PR #18 head is `446d938c167640b08e4316207fae5d67764868d4`. Current CI/review details are listed in the build log. See
 `../AO_BUILD_LOG.md` for timestamps and branches. These records do not prove
 manual Chrome gameplay. Current real-Chrome critical-path evidence remains `UNVERIFIED`.
 

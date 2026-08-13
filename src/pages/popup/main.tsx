@@ -1,60 +1,539 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { sendMessage } from "../../platform/chrome-messaging";
 import type { GameState } from "../../game/types";
+import { sendMessage } from "../../platform/chrome-messaging";
 
-type ViewState = "loading" | "ready" | "busy" | "error";
+type Mode = "launcher" | "arcade";
 
 const roomNames: Record<string, string> = {
-  entrance: "Entrance", armory: "Armory", sanctum: "Sanctum", vault: "Vault", boss: "Boss", void: "Void",
+  entrance: "Entrance",
+  armory: "Armory",
+  sanctum: "Sanctum",
+  vault: "Vault",
+  boss: "Boss",
+  void: "Void",
 };
 
 function errorText(error: unknown) {
-  return error instanceof Error ? error.message : String(error || "The dungeon did not answer.");
+  return error instanceof Error
+    ? error.message
+    : String(error || "TABYRINTH did not answer.");
 }
 
-function App() {
+function checkedResponse<T>(value: unknown): T {
+  if (value && typeof value === "object" && "error" in value) {
+    throw new Error(errorText((value as { error?: unknown }).error));
+  }
+  return value as T;
+}
+
+export function formatElapsed(milliseconds: number) {
+  const seconds = Math.max(0, Math.floor(milliseconds / 1000));
+  return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+export function getVictorySummary(run: GameState) {
+  const endedAt = run.metrics.endedAt ?? run.metrics.startedAt;
+  return {
+    elapsed: formatElapsed(endedAt - run.metrics.startedAt),
+    hallsCrossed: Object.values(run.roomById).filter(
+      (room) => room.kind !== "void" && room.visited,
+    ).length,
+    realityShifts: run.metrics.tabMoves,
+    voidsSevered:
+      run.status === "victory" &&
+      run.boss.shieldBroken &&
+      !run.boss.voidActive
+        ? 1
+        : 0,
+  };
+}
+
+async function gameRequest<T>(
+  message: Parameters<typeof sendMessage>[0],
+): Promise<T> {
+  return checkedResponse<T>(await sendMessage(message));
+}
+
+function initialMode(): Mode {
+  if (typeof window === "undefined") return "launcher";
+  const hash = window.location.hash.slice(1).toLowerCase();
+  const query = new URLSearchParams(window.location.search);
+  return hash === "arcade" ||
+    query.get("mode")?.toLowerCase() === "arcade" ||
+    query.get("arcade") === "1"
+    ? "arcade"
+    : "launcher";
+}
+
+function TrailMark() {
+  return (
+    <svg
+      className="trail-mark"
+      viewBox="0 0 292 72"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path className="trail-base" d="M1 37h58V14h75v44h77V37h80" />
+      <path className="trail-branch" d="M134 14V3M211 58v11" />
+      <circle cx="59" cy="37" r="4" />
+      <circle cx="134" cy="14" r="4" />
+      <circle cx="211" cy="58" r="4" />
+      <circle className="trail-end" cx="291" cy="37" r="5" />
+    </svg>
+  );
+}
+
+function Launcher({ onOpenArcade }: { onOpenArcade: () => void }) {
+  const canResolveWindow =
+    typeof chrome !== "undefined" && Boolean(chrome.windows?.getCurrent);
+  const [windowId, setWindowId] = React.useState<number | null>(null);
+  const [resolvingWindow, setResolvingWindow] =
+    React.useState(canResolveWindow);
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState(
+    canResolveWindow ? "" : "Open TABYRINTH from its Chrome toolbar icon.",
+  );
+
+  React.useEffect(() => {
+    let active = true;
+
+    if (!canResolveWindow) {
+      return () => {
+        active = false;
+      };
+    }
+
+    void chrome.windows
+      .getCurrent()
+      .then((currentWindow) => {
+        if (!active) return;
+        if (currentWindow.id === undefined) {
+          throw new Error("Current Chrome window is unavailable.");
+        }
+        setWindowId(currentWindow.id);
+      })
+      .catch(() => {
+        if (active) {
+          setError("Close this popup, then open TABYRINTH again.");
+        }
+      })
+      .finally(() => {
+        if (active) setResolvingWindow(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [canResolveWindow]);
+
+  const openSidePanel = () => {
+    if (busy) return;
+    setError("");
+
+    if (typeof chrome === "undefined" || !chrome.sidePanel?.open) {
+      setError("Update Chrome, then try Open Side Panel again.");
+      return;
+    }
+    if (windowId === null) {
+      setError("Close this popup, then open TABYRINTH again.");
+      return;
+    }
+
+    setBusy(true);
+    void chrome.sidePanel.open({ windowId }).then(
+      () => setBusy(false),
+      () => {
+        setBusy(false);
+        setError("Side Panel did not open. Try the TABYRINTH toolbar icon again.");
+      },
+    );
+  };
+
+  return (
+    <section className="launcher" aria-labelledby="launcher-title">
+      <header>
+        <h1 id="launcher-title">TABYRINTH</h1>
+        <p>Fold rabbit holes. Keep the trail.</p>
+      </header>
+      <TrailMark />
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="launcher-actions">
+        <button
+          type="button"
+          className="primary-action"
+          disabled={resolvingWindow || windowId === null || busy}
+          onClick={openSidePanel}
+        >
+          {busy ? "Opening Side Panel…" : "Open Side Panel"}
+          <span aria-hidden="true">→</span>
+        </button>
+        <button type="button" className="quiet arcade-link" onClick={onOpenArcade}>
+          Open Arcade
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function ArcadeMode({ onBack }: { onBack: () => void }) {
   const [run, setRun] = React.useState<GameState | null>(null);
-  const [view, setView] = React.useState<ViewState>("loading");
-  const [notice, setNotice] = React.useState("");
-  const [confirmReset, setConfirmReset] = React.useState(false);
-  const [onboardingSeen, setOnboardingSeen] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState("");
 
   const load = React.useCallback(async () => {
-    try { setRun(await sendMessage({ type: "GET_STATE" }) as GameState | null); setView("ready"); }
-    catch (error) { setNotice(errorText(error)); setView("error"); }
+    try {
+      setRun(await gameRequest<GameState | null>({ type: "GET_STATE" }));
+    } catch (value) {
+      setError(errorText(value));
+    }
   }, []);
-  React.useEffect(() => { void load(); }, [load]);
+
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   const start = async () => {
-    setView("busy"); setNotice("");
-    try { setRun(await sendMessage({ type: "START_RUN" }) as GameState); setView("ready"); }
-    catch (error) { setNotice(`Could not open the dungeon: ${errorText(error)}`); setView("error"); }
-  };
-  const reset = async () => {
-    setView("busy"); setConfirmReset(false); setNotice("");
-    try { await sendMessage({ type: "RESET_RUN" }); setRun(null); setView("ready"); }
-    catch (error) { setNotice(`Reset failed: ${errorText(error)}`); setView("error"); }
+    setBusy(true);
+    setError("");
+    try {
+      setRun(await gameRequest<GameState>({ type: "START_RUN" }));
+    } catch (value) {
+      setError(errorText(value));
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const busy = view === "busy";
-  const rooms = run?.orderedRoomIds.map((id) => roomNames[id] ?? id) ?? [];
-  return <main className="popup-shell" aria-busy={busy}>
-    <style>{css}</style>
-    <header><div className="eyebrow">CHROME // DUNGEON PROTOCOL</div><h1>TABYRINTH</h1><p>The dungeon lives in your tab bar.</p></header>
-    {view === "loading" && <p role="status" className="status">Reading the dungeon...</p>}
-    {view === "error" && <section className="card danger" role="alert"><strong>Dungeon connection lost</strong><p>{notice}</p><button onClick={() => void load}>Try again</button><button className="quiet" onClick={() => void reset}>Start clean</button></section>}
-    {view !== "loading" && view !== "error" && !run && <section className="card"><div className="sigil">✦</div><h2>Ready to descend?</h2><p>Five real tabs become five rooms. Your browser is the board.</p><button autoFocus disabled={busy} onClick={() => void start}>{busy ? "Opening rooms..." : "Start Run"}</button><small>~3 minutes · no account · no internet</small></section>}
-    {run && <>
-      {run.status === "onboarding" && !onboardingSeen && <section className="card onboarding" aria-labelledby="how-title"><div className="step">FIRST DESCENT</div><h2 id="how-title">Your tabs are rooms.</h2><p>Drag a managed tab to change the dungeon’s corridors. Make one explicit move to wake the map.</p><div className="tab-demo" aria-label="Room order">{rooms.map((room) => <span key={room}>{room}</span>)}</div><button autoFocus onClick={() => setOnboardingSeen(true)}>Enter the dungeon</button></section>}
-      {(onboardingSeen || run.status !== "onboarding") && <section className="card"><div className="step">{run.status === "victory" ? "DUNGEON CLEARED" : "RUN IN PROGRESS"}</div><h2>{run.status === "victory" ? "The rift is sealed." : "Keep moving."}</h2><p>{run.status === "victory" ? "The tab bar remembers your triumph." : "Reorder rooms. Close the Void. Change the world."}</p><div className="tab-demo" aria-label="Current room order">{rooms.map((room, i) => <span key={`${room}-${i}`}>{room}</span>)}</div>{run.status === "victory" && <dl><div><dt>Tab shifts</dt><dd>{run.metrics.tabMoves}</dd></div><div><dt>Rooms closed</dt><dd>{run.metrics.roomsClosed}</dd></div></dl>}<button onClick={() => window.close()}>Close dungeon</button></section>}
-      <button className="reset-link" onClick={() => setConfirmReset(true)} disabled={busy}>Reset / replay</button>
-      {confirmReset && <div className="confirm" role="dialog" aria-modal="true" aria-labelledby="reset-title"><h2 id="reset-title">Close this run?</h2><p>Only TABYRINTH-owned tabs will close.</p><button autoFocus onClick={() => void reset}>Reset run</button><button className="quiet" onClick={() => setConfirmReset(false)}>Keep playing</button></div>}
-    </>}
-    {notice && view !== "error" && <p className="notice" role="status">{notice}</p>}
-  </main>;
+  const reset = async () => {
+    setBusy(true);
+    try {
+      await gameRequest<null>({ type: "RESET_RUN" });
+      setRun(null);
+    } catch (value) {
+      setError(errorText(value));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const rooms =
+    run?.orderedRoomIds.map(
+      (id) => roomNames[run.roomById[id]?.kind] ?? id,
+    ) ?? [];
+
+  return (
+    <section className="arcade-mode" aria-labelledby="arcade-title">
+      <button type="button" className="quiet back-button" onClick={onBack}>
+        ← Back
+      </button>
+      <p className="eyebrow">Arcade / secondary mode</p>
+      <h1 id="arcade-title">The browser is the board.</h1>
+      <p className="lede">
+        Five managed tabs become a short dungeon. Dragging them changes the
+        topology; the Void is a real tab.
+      </p>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      {!run ? (
+        <section className="empty-state" aria-label="Start Arcade">
+          <h2>Ready to descend?</h2>
+          <p>Arcade preserves the original browser-topology experiment.</p>
+          <button type="button" disabled={busy} onClick={() => void start()}>
+            Start Arcade Run
+          </button>
+        </section>
+      ) : (
+        <>
+          <ol className="arcade-map" aria-label="Arcade room order">
+            {rooms.map((room, index) => (
+              <li
+                key={`${room}-${index}`}
+                data-state={
+                  room ===
+                  roomNames[run.roomById[run.player.currentRoomId]?.kind]
+                    ? "active"
+                    : "available"
+                }
+              >
+                <span className="room-index">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <strong>{room}</strong>
+              </li>
+            ))}
+          </ol>
+          <p className="helper">
+            Current room:{" "}
+            {roomNames[run.roomById[run.player.currentRoomId]?.kind] ??
+              "Unknown"}
+            . Use the managed browser tabs to move and act.
+          </p>
+          {run.status === "victory" ? (
+            <p className="success" role="status">
+              Arcade run complete. {getVictorySummary(run).realityShifts}{" "}
+              topology shifts recorded.
+            </p>
+          ) : (
+            <button
+              type="button"
+              className="quiet reset-button"
+              disabled={busy}
+              onClick={() => void reset()}
+            >
+              Reset Arcade Run
+            </button>
+          )}
+        </>
+      )}
+    </section>
+  );
 }
 
-const css = `:root{color-scheme:dark;font:14px/1.45 system-ui,sans-serif}*{box-sizing:border-box}body{margin:0;background:#10131a;color:#e8edf7}.popup-shell{width:340px;min-height:420px;padding:24px;background:radial-gradient(circle at 90% 0,#273047,#10131a 48%)}header{margin-bottom:24px}.eyebrow,.step{font-size:10px;letter-spacing:.16em;color:#8d9ab4;font-weight:700}h1{font:800 31px/1 Georgia,serif;letter-spacing:.08em;margin:9px 0 8px;color:#fff}h2{font:700 22px/1.1 Georgia,serif;margin:10px 0}p{color:#acb5c7;margin:8px 0 18px}.card{border:1px solid #3b465c;border-radius:12px;padding:20px;background:#191f2b;box-shadow:0 12px 35px #080a0f88;animation:focal-in 240ms ease both}.sigil{font-size:28px;color:#e9bb69}.card button,.confirm button{width:100%;border:0;border-radius:7px;padding:11px 14px;background:#e9bb69;color:#17130d;font-weight:800;cursor:pointer;transition:transform 140ms ease,filter 140ms ease}.card button:hover:not(:disabled),.confirm button:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.08)}.card button:active:not(:disabled),.confirm button:active:not(:disabled){transform:translateY(0)}.card button:focus-visible,.confirm button:focus-visible,.reset-link:focus-visible{outline:3px solid #a9d7ff;outline-offset:3px}.card small{display:block;text-align:center;color:#7f8aa0;margin-top:12px}.tab-demo{display:flex;gap:5px;overflow-x:auto;margin:18px 0;padding-bottom:2px}.tab-demo span{flex:1 0 52px;min-width:0;padding:9px 4px;border:1px solid #59677f;border-radius:5px;text-align:center;font-size:10px;color:#d8e0ef}.danger{border-color:#a65f5f}.danger strong{color:#ffb4a8}.danger button{margin-top:7px}.quiet{background:transparent!important;color:#b7c2d7!important;border:1px solid #4e5a71!important}.reset-link{display:block;margin:18px auto 0;background:transparent;border:0;color:#8995ab;text-decoration:underline;cursor:pointer}.notice,.status{text-align:center;color:#ffc9a2;font-size:12px;animation:state-pulse 300ms ease both}.confirm{position:fixed;inset:80px 18px auto;background:#252d3d;border:1px solid #64718a;border-radius:10px;padding:18px;box-shadow:0 15px 40px #000;animation:focal-in 180ms ease both}.confirm button{margin-top:8px}dl{display:flex;gap:20px;margin:18px 0}dt{font-size:11px;color:#8995ab}dd{margin:2px 0;font-size:20px;font-weight:700}@keyframes focal-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes state-pulse{from{opacity:.45}to{opacity:1}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition:none!important}.card button:hover:not(:disabled),.card button:active:not(:disabled),.confirm button:hover:not(:disabled),.confirm button:active:not(:disabled){transform:none;filter:none}}`;
+export function App() {
+  const [mode, setMode] = React.useState<Mode>(initialMode);
+
+  return (
+    <main className="popup-shell">
+      <style>{css}</style>
+      {mode === "launcher" ? (
+        <Launcher onOpenArcade={() => setMode("arcade")} />
+      ) : (
+        <ArcadeMode onBack={() => setMode("launcher")} />
+      )}
+    </main>
+  );
+}
+
+const css = `
+:root {
+  color-scheme: dark;
+  font: 14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --void: #090c0b;
+  --ink: #111615;
+  --line: #2c3734;
+  --bone: #f0ecdf;
+  --muted: #98a29a;
+  --acid: #c8ff63;
+  --cyan: #74dfdb;
+  --red: #ff8b7b;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { margin: 0; min-height: 100%; }
+
+body {
+  min-width: 328px;
+  background: var(--void);
+  color: var(--bone);
+}
+
+button { font: inherit; }
+
+button {
+  appearance: none;
+  border: 1px solid var(--acid);
+  border-radius: 2px;
+  background: var(--acid);
+  color: #10150d;
+  cursor: pointer;
+  font-weight: 780;
+  min-height: 44px;
+  padding: 0.72rem 0.9rem;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+button:hover:not(:disabled) { transform: translateY(-1px); }
+button:active:not(:disabled) { transform: translateY(0); }
+button:disabled { cursor: not-allowed; opacity: 0.48; }
+
+button:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
+
+.popup-shell {
+  width: 328px;
+  max-width: 100vw;
+  min-height: 282px;
+  overflow: hidden;
+  background-color: var(--void);
+  background-image:
+    linear-gradient(90deg, rgb(255 255 255 / 0.025) 1px, transparent 1px),
+    linear-gradient(rgb(255 255 255 / 0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.launcher { padding: 25px 18px 17px; }
+
+.launcher header { border-left: 2px solid var(--acid); padding-left: 12px; }
+
+.launcher h1,
+.arcade-mode h1 {
+  font: 800 1.55rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.12em;
+  margin: 0;
+}
+
+.launcher header p,
+.lede,
+.helper,
+.empty-state p {
+  color: var(--muted);
+}
+
+.launcher header p { margin: 8px 0 0; }
+
+.trail-mark {
+  display: block;
+  height: 72px;
+  margin: 17px 0 15px;
+  width: 100%;
+}
+
+.trail-mark path {
+  fill: none;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+.trail-base { stroke: var(--line); stroke-width: 2; }
+.trail-branch { stroke: var(--cyan); stroke-width: 2; }
+.trail-mark circle { fill: var(--void); stroke: var(--cyan); stroke-width: 2; }
+.trail-mark .trail-end { fill: var(--acid); stroke: var(--acid); }
+
+.launcher-actions { display: grid; gap: 3px; }
+
+.primary-action {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  letter-spacing: 0.035em;
+  width: 100%;
+}
+
+.primary-action span { font-size: 1.2rem; font-weight: 500; }
+
+.quiet {
+  border-color: var(--line);
+  background: transparent;
+  color: var(--bone);
+}
+
+.quiet:hover:not(:disabled) {
+  border-color: var(--muted);
+  background: rgb(255 255 255 / 0.035);
+}
+
+.arcade-link {
+  border-color: transparent;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.error,
+.success {
+  font-size: 0.78rem;
+  margin: 0 0 12px;
+}
+
+.error { color: var(--red); }
+.success { color: var(--acid); }
+
+.arcade-mode { padding: 18px; }
+
+.back-button {
+  border: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  min-height: 32px;
+  padding: 0 4px;
+}
+
+.eyebrow {
+  color: var(--acid);
+  font: 750 0.62rem/1.3 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.12em;
+  margin: 18px 0 9px;
+  text-transform: uppercase;
+}
+
+.arcade-mode h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.55rem;
+  letter-spacing: 0;
+  line-height: 1.05;
+}
+
+.lede { font-size: 0.8rem; margin: 9px 0 0; max-width: 38ch; }
+
+.empty-state {
+  border-top: 1px solid var(--line);
+  margin-top: 19px;
+  padding-top: 16px;
+}
+
+.empty-state h2 {
+  font: 650 1.15rem/1.1 Georgia, "Times New Roman", serif;
+  margin: 0 0 7px;
+}
+
+.empty-state p { font-size: 0.76rem; margin: 0 0 12px; }
+
+.arcade-map {
+  display: grid;
+  list-style: none;
+  margin: 19px 0 13px;
+  padding: 0;
+}
+
+.arcade-map li {
+  align-items: center;
+  border-block: 1px solid var(--line);
+  color: var(--muted);
+  display: flex;
+  gap: 10px;
+  min-height: 40px;
+  padding: 7px 9px;
+}
+
+.arcade-map li + li { border-top: 0; }
+.arcade-map li[data-state="active"] { border-color: var(--acid); color: var(--bone); }
+
+.room-index {
+  color: var(--cyan);
+  font: 700 0.65rem/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.arcade-map strong { font-size: 0.8rem; }
+.helper { font-size: 0.74rem; margin: 0 0 13px; }
+.reset-button { font-size: 0.74rem; min-height: 38px; }
+
+@media (max-width: 340px) {
+  .popup-shell { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button { transition: none; }
+  button:hover:not(:disabled),
+  button:active:not(:disabled) { transform: none; }
+}
+
+@media (forced-colors: active) {
+  .trail-mark path,
+  .trail-mark circle { stroke: CanvasText; }
+  .trail-mark .trail-end { fill: Highlight; }
+}
+`;
 
 createRoot(document.getElementById("root")!).render(<App />);

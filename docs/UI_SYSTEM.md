@@ -1,12 +1,13 @@
 # TABYRINTH UI system
 
-Status: visual foundation for extension surfaces. Gameplay contracts remain untouched.
+Status: visual foundation for extension surfaces. Runtime wiring is implemented in
+the typed background contract; this document records the surface system only.
 
 ## Thesis
 
 TABYRINTH is an occult operating system: the browser is a dark instrument panel and the tab strip is the world. Interfaces should feel engineered, alert, and slightly haunted—not like a fantasy card game or purple SaaS dashboard. Use asymmetrical rails, hairline dividers, signal marks, and short all-caps labels. Start unboxed; panels name a state or instrument rather than decorating every sentence.
 
-Variance 8 / motion 7 / density 5: strong typographic contrast and small irregular offsets, with motion reserved for causality and status. No emoji, remote assets, canvas, WebGL, gradients, or new dependencies.
+Variance 6 / motion 3 / density 3: strong typographic contrast, one vertical trail, and small irregular offsets. Motion stays state-driven. No remote assets, canvas, WebGL, or new dependencies.
 
 ## Tokens
 
@@ -43,6 +44,13 @@ Native controls first; keyboard focus is visible; labels must remain meaningful 
 
 ## React Bits evaluation
 
-`components.json` exposes `https://reactbits.dev/r/{name}.json`. Registry probe on 2026-08-12 returned HTTP 200 for six candidates: BlurText, Magnet, GlareText, ShinyText, ClickSpark, Particles. Candidates were rejected for this foundation: BlurText/ShinyText duplicate readable type but risk instruction movement; Magnet/ClickSpark add pointer-dependent feedback without keyboard parity; GlareText adds decoration without state value; Particles violate the low-cost, no-canvas direction. No React Bits component selected. This is an honest registry availability check, not proof that source code was copied or locally tested.
+React Bits MCP inspection covered compact button, form, loader, text, list, drawer, success, fold, card, and Folder candidates. The catalog exposed placeholder Button/Form/Loader records; targeted search returned no usable matches. The dependency-free Folder source was inspected directly and reduced to a small CSS/React folded-tab artifact for `portal.html`.
 
-Why this is not generic: the visual grammar treats topology as an instrument readout—acid green marks the actionable sigil, cyan marks spectral structure, and red marks a breach—rather than applying a universal dashboard card kit.
+Selected: one adapted Folder visual. It communicates “pages sealed” without owning business state. Rejected: text reveals, counters, pointer magnetism, click sparks, shine loops, canvas particles, and continuous loaders because they add task cost, keyboard/reduced-motion risk, or decoration without state value. See `THIRD_PARTY_NOTICES.md` for attribution and license boundary.
+
+Why this is not generic: the visual grammar treats browser ancestry as an instrument readout—one vertical trail, acid-green action seam, and a folded Portal artifact—rather than applying a dashboard card kit.
+# Portal Fold surfaces
+
+The Portal and Side Panel use native semantic controls plus one adapted Folder visual. Native CSS supplies state feedback, focus-visible outlines, mutually exclusive drawers, compact collection affordances, and a reduced-motion equivalent.
+
+Selected interaction roles: one primary fold/unseal action, a local trail window, and compact Portal/Loot counters. The page remains one column and uses semantic buttons, headings, lists, alert/status regions, and honest local view-model states. Runtime message wiring is implemented through the typed background contract.

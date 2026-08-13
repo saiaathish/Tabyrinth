@@ -21,6 +21,6 @@ export function Icon({ name, label }: { name: "arrow" | "lock" | "spark"; label:
   return <svg className="ui-icon" viewBox="0 0 24 24" role="img" aria-label={label} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="square" strokeLinejoin="miter"><path d={paths[name]} /></svg>;
 }
 
-export function Topology({ rooms, activeRoom }: { rooms: readonly string[]; activeRoom?: string }) {
-  return <ol className="ui-topology" aria-label="Dungeon topology">{rooms.map((room, index) => <li className={`ui-topology__node ${room === activeRoom ? "is-active" : ""}`.trim()} data-active={room === activeRoom} key={`${room}-${index}`}><span className="ui-topology__index">{String(index + 1).padStart(2, "0")}</span><span>{room}</span></li>)}</ol>;
+export function Topology({ rooms, activeRoom, label = "Dungeon topology" }: { rooms: readonly string[]; activeRoom?: string; label?: string }) {
+  return <ol className="ui-topology" aria-label={label}>{rooms.map((room, index) => <li className={`ui-topology__node ${room === activeRoom ? "is-active" : ""}`.trim()} data-active={room === activeRoom} key={`${room}-${index}`}><span className="ui-topology__index">{String(index + 1).padStart(2, "0")}</span><span>{room}</span></li>)}</ol>;
 }

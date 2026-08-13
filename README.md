@@ -4,13 +4,13 @@ TABYRINTH turns your real Chrome tab strip into a dungeon: every managed tab is 
 
 ## Current state
 
-Final checkpoint: `bc8f0b59c74b6b054847afeb924eb1b4d7cdd921` ([PR #14](https://github.com/saiaathish/Tabyrinth/pull/14), merged 2026-08-12T07:58:54Z). PR #16 merged at `ab16c1c9b0bb58505357b311f9983be561e1d1b5`; both had two successful `verify` checks. Final Chrome critical path remains **UNVERIFIED**.
+Published `main` is `625eef238ae7f6dac11193665527e086d5e47225` ([PR #17](https://github.com/saiaathish/Tabyrinth/pull/17), merged 2026-08-12T08:25:20Z, two successful `verify` checks). [PR #18](https://github.com/saiaathish/Tabyrinth/pull/18) is open at head `446d938c167640b08e4316207fae5d67764868d4` with two successful `verify` checks and no GitHub reviews. This local `codex/prd-completion` branch contains a clean committed PRD-completion checkpoint integrating PR #18. Final Chrome critical path remains **UNVERIFIED**.
 
 The complete judge path (real Chrome tab reorder, Vault/Boss puzzle, VOID tab, and victory) remains **UNVERIFIED** because no direct real-Chrome critical-path run is recorded. Do not present those behaviors as browser-proven until direct Chrome evidence exists.
 
 ## Load the extension locally
 
-Requirements: Node.js 20+ and Chrome with Developer mode enabled.
+Requirements: Node.js 22+ and Chrome 116+ with Developer mode enabled. Chrome 116 is the minimum supported version for the Side Panel API. The current lockfile uses jsdom/undici releases whose engines require Node 22 or newer.
 
 ```sh
 npm ci
@@ -54,11 +54,11 @@ See [docs/CI_CONTRACT.md](docs/CI_CONTRACT.md) for the CI contract and [docs/DEM
 
 ## Known limitations
 
-- The repository's current main branch is a foundation, not a verified submission build.
+- Published `main` is the PR #17 merge above; this branch includes the open PR #18 candidate and additional uncommitted hardening.
 - Chrome behavior and permissions still require manual validation in a real browser.
 - Automated checks do not prove real tab dragging, tab-group behavior, service-worker wake behavior, popup/room presentation, or the full boss/Void run.
 - Chrome Web Store packaging and distribution are out of scope.
 
 ## AO build evidence
 
-AO evidence is append-only and factual. Current records cover AO sessions `tabyrinth-5` through `tabyrinth-37` where metadata exists, and recorded PRs #1–#16; all 16 recorded PRs are merged. CI outcomes are listed in [docs/AO_BUILD_LOG.md](docs/AO_BUILD_LOG.md). Two attempted AO OpenCode spawns returned `INTERNAL_ERROR`; no OpenCode session, branch, PR, or result exists. Final Chrome critical path remains **UNVERIFIED**.
+AO evidence is append-only and factual. Current records cover AO sessions `tabyrinth-5` through `tabyrinth-37` where metadata exists, and recorded PRs #1–#18: #1–#17 are merged and #18 is open. CI outcomes are listed in [docs/AO_BUILD_LOG.md](docs/AO_BUILD_LOG.md). Two attempted AO OpenCode spawns returned `INTERNAL_ERROR`; no OpenCode session, branch, PR, or result exists. Final Chrome critical path remains **UNVERIFIED**.

@@ -7,11 +7,15 @@ import type { GameState } from "./types";
 const makeState = (order = ["entrance", "armory", "sanctum", "vault", "boss"]): GameState => ({ schemaVersion: 1, runId: "test", status: "active", groupId: 1, windowId: 1, roomById: Object.fromEntries(order.map((roomId, tabId) => [roomId, { roomId, kind: roomId as GameState["roomById"][string]["kind"], tabId, visited: roomId === "entrance", destroyed: false, completed: false }])), roomIdByTabId: Object.fromEntries(order.map((roomId, tabId) => [String(tabId), roomId])), orderedRoomIds: order, player: { hp: 1, maxHp: 3, hasBlade: false, hasSigil: false, currentRoomId: "entrance" }, boss: { hp: 2, maxHp: 2, shieldBroken: false, voidActive: false, voidRoomId: null }, flags: { tutorialMoveCompleted: false, sigilAdjacencySatisfied: false, bossIntroduced: false }, metrics: { startedAt: 0, endedAt: null, tabMoves: 0, roomsClosed: 0, actions: 0 }, revision: 0 });
 
 describe("pure gameplay loop", () => {
-  it("starts onboarding on the first complete topology action", () => {
+  it("finishes onboarding only when Armory moves immediately right of Vault", () => {
     const onboarding = { ...makeState(), status: "onboarding" as const };
-    const next = reduceGame(onboarding, { type: "TAB_TOPOLOGY_SYNC", payload: { orderedRoomIds: ["entrance", "armory", "vault", "sanctum", "boss"] } });
+    const wrongMove = reduceGame(onboarding, { type: "TAB_TOPOLOGY_SYNC", payload: { orderedRoomIds: ["entrance", "armory", "vault", "sanctum", "boss"] } });
+    expect(wrongMove.status).toBe("onboarding");
+    expect(wrongMove.flags.tutorialMoveCompleted).toBe(false);
+
+    const next = reduceGame(wrongMove, { type: "TAB_TOPOLOGY_SYNC", payload: { orderedRoomIds: ["entrance", "sanctum", "vault", "armory", "boss"] } });
     expect(next.status).toBe("active");
-    expect(next.orderedRoomIds).toEqual(["entrance", "armory", "vault", "sanctum", "boss"]);
+    expect(next.orderedRoomIds).toEqual(["entrance", "sanctum", "vault", "armory", "boss"]);
     expect(next.flags.tutorialMoveCompleted).toBe(true);
   });
 
@@ -31,6 +35,19 @@ describe("pure gameplay loop", () => {
     state = reduceGame(state, { type: "MOVE_PLAYER", payload: { toRoomId: "vault" } });
     state = reduceGame(state, { type: "TAKE_SIGIL" });
     expect(state.player.hasSigil).toBe(true);
+  });
+
+  it.each([1, 2, 3])("completes Sanctum restoration once from %i HP", (hp) => {
+    let state = makeState();
+    state = reduceGame(state, { type: "MOVE_PLAYER", payload: { toRoomId: "armory" } });
+    state = reduceGame(state, { type: "MOVE_PLAYER", payload: { toRoomId: "sanctum" } });
+    state = { ...state, player: { ...state.player, hp } };
+    expect(state.roomById.sanctum.completed).toBe(false);
+
+    const restored = reduceGame(state, { type: "RESTORE_HEALTH" });
+    expect(restored.player.hp).toBe(restored.player.maxHp);
+    expect(restored.roomById.sanctum.completed).toBe(true);
+    expect(reduceGame(restored, { type: "RESTORE_HEALTH" })).toBe(restored);
   });
 
   it("breaks seal, blocks attacks during Void, then wins on final hit", () => {
