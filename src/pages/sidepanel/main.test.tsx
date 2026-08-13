@@ -7,6 +7,7 @@ import { errorState, SidePanel, userFacingError, type PortalItem, type TrailNode
 import { Onboarding } from "./onboarding";
 
 const quest = { id: "q", title: "Ship the next release", rootNodeId: "a", currentNodeId: "c", status: "active" as const, createdAt: 1, completedAt: null };
+const completedQuest = { ...quest, status: "complete" as const, currentNodeId: null, completedAt: 2 };
 const trail: TrailNode[] = [
   { id: "a", title: "Chrome extensions", url: "https://developer.chrome.com", disposition: "path", status: "live" },
   { id: "b", title: "Side Panel API", url: "https://developer.chrome.com/side-panel", disposition: "path", status: "live" },
@@ -62,6 +63,17 @@ describe("Side Panel instrument", () => {
     expect(Array.from(host.querySelectorAll("button")).some((button) => button.textContent === "ADD TO MAIN PATH")).toBe(false);
     act(() => root.render(<SidePanel state="nothing-to-fold" quest={trackableQuest} trail={[]} portals={portals} />));
     expect(host.textContent).not.toContain("ADD TO MAIN PATH");
+  });
+
+  it("replaces Finish with New Quest after completion", () => {
+    const onFinish = vi.fn(); const onNewQuest = vi.fn(); const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
+    act(() => root.render(<SidePanel state="complete" quest={completedQuest} trail={[]} portals={portals} onFinish={onFinish} onNewQuest={onNewQuest} />));
+    expect(host.textContent).toContain("Quest complete.");
+    expect(host.textContent).toContain("New Quest");
+    expect(host.textContent).not.toContain("Finish");
+    act(() => host.querySelector<HTMLButtonElement>('button.text-control')?.click());
+    expect(onNewQuest).toHaveBeenCalledOnce();
+    expect(onFinish).not.toHaveBeenCalled();
   });
 
   it("dispatches the track action", () => {

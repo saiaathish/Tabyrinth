@@ -77,12 +77,13 @@ export type SidePanelProps = {
   onBegin?: (title: string) => void;
   onAction?: (action: SidePanelAction) => void;
   onFinish?: () => void;
+  onNewQuest?: () => void;
   onDrawer?: (drawer: DrawerName) => void;
   onUnseal?: (portal: PortalItem) => void;
   onReplayIntro?: () => void;
 };
 
-export function SidePanel({ state, quest, trail, portals, busy = false, trackable = false, notice = "", drawer = null, onBegin, onAction, onFinish, onDrawer, onUnseal, onReplayIntro }: SidePanelProps) {
+export function SidePanel({ state, quest, trail, portals, busy = false, trackable = false, notice = "", drawer = null, onBegin, onAction, onFinish, onNewQuest, onDrawer, onUnseal, onReplayIntro }: SidePanelProps) {
   const goalId = useId();
   const [goal, setGoal] = useState("");
   const portalsTriggerRef = useRef<HTMLButtonElement>(null);
@@ -104,7 +105,7 @@ export function SidePanel({ state, quest, trail, portals, busy = false, trackabl
       </form>
       {state === "unsupported" && <p className="inline-alert" role="alert">Use a normal web page to begin.</p>}
     </section> : <>
-      <section className="quest-heading" aria-label="Active Quest"><h1>{quest.title}</h1><button type="button" className="text-control" onClick={onFinish} disabled={busy}>Finish</button></section>
+      <section className="quest-heading" aria-label="Active Quest"><h1>{quest.title}</h1>{state === "complete" ? <button type="button" className="text-control" onClick={onNewQuest} disabled={busy}>New Quest</button> : <button type="button" className="text-control" onClick={onFinish} disabled={busy}>Finish</button>}</section>
       <Trail trail={trail} />
       <section className="decision" data-state={state}>
         <div aria-live="polite"><h2>{stateCopy?.title}</h2>{stateCopy?.body && <p>{stateCopy.body}</p>}</div>
@@ -164,6 +165,7 @@ function LiveSidePanel() {
   const [portals, setPortals] = useState<PortalItem[]>([]);
   const [drawer, setDrawer] = useState<DrawerName>(null);
   const [hint, setHint] = useState("");
+  const [startingNewQuest, setStartingNewQuest] = useState(false);
 
   const refresh = async () => {
     const result = await chrome.runtime.sendMessage({ type: "PORTAL_GET" });
@@ -204,14 +206,14 @@ function LiveSidePanel() {
     return () => { disposed = true; events.forEach((event) => event?.removeListener?.(update)); chrome.storage?.onChanged?.removeListener?.(storage); };
   }, []);
 
-  const perform = async (task: () => Promise<unknown>, success: string) => {
+  const perform = async (task: () => Promise<unknown>, success: string, onSuccess?: () => void) => {
     setBusy(true); setNotice("");
-    try { const result = await task() as { error?: string } | undefined; if (result?.error) throw new Error(result.error); setNotice(success); await refresh(); return result; }
+    try { const result = await task() as { error?: string } | undefined; if (result?.error) throw new Error(result.error); onSuccess?.(); setNotice(success); await refresh(); return result; }
     catch (error) { const reason = error instanceof Error ? error.message : String(error); setState(errorState(reason)); setNotice(userFacingError(reason)); return undefined; }
     finally { setBusy(false); }
   };
   const trail = graph && currentNodeId ? (() => { const nodes: TrailNode[] = []; const seen = new Set<string>(); let node: PortalGraph["nodes"][string] | undefined = graph.nodes[currentNodeId]; while (node && !seen.has(node.id)) { seen.add(node.id); nodes.unshift({ id: node.id, title: node.title ?? node.url ?? "Untitled page", url: node.url ?? "", disposition: node.disposition, status: node.status }); node = node.parentNodeId ? graph.nodes[node.parentNodeId] : undefined; } return nodes.slice(-7); })() : [];
-  const begin = (title: string) => { void perform(() => chrome.runtime.sendMessage({ type: "PORTAL_BEGIN", title }), "Quest begun."); };
+  const begin = (title: string) => { void perform(() => chrome.runtime.sendMessage({ type: "PORTAL_BEGIN", title }), "Quest begun.", () => setStartingNewQuest(false)); };
   const action = (kind: SidePanelAction) => {
     if (kind === "track") {
       void perform(() => chrome.runtime.sendMessage({ type: "PORTAL_TRACK_CURRENT" }), "Tab tracked.");
@@ -224,7 +226,7 @@ function LiveSidePanel() {
   const finish = () => { if (quest) void perform(() => chrome.runtime.sendMessage({ type: "PORTAL_FINISH", questId: quest.id }), "Quest complete."); };
   const unseal = (portal: PortalItem) => { setState("restoring"); void perform(() => chrome.runtime.sendMessage({ type: "PORTAL_UNSEAL", portalId: portal.id }), "Branch unsealed."); };
   if (onboarding.state && !onboarding.state.completed && state !== "loading") return <main className="surface sidepanel" aria-labelledby="sidepanel-title"><header className="instrument-header"><span className="wordmark" id="sidepanel-title">TABYRINTH</span></header><Onboarding onComplete={onboarding.complete} /></main>;
-  return <SidePanel state={state} quest={quest} trail={trail} portals={portals} busy={busy} trackable={Boolean(quest?.status === "active" && !currentNodeId && activeTabSupported)} notice={notice || hint} drawer={drawer} onBegin={begin} onAction={action} onFinish={finish} onDrawer={setDrawer} onUnseal={unseal} onReplayIntro={onboarding.replay} />;
+  return <SidePanel state={startingNewQuest ? "start" : state} quest={startingNewQuest ? null : quest} trail={startingNewQuest ? [] : trail} portals={portals} busy={busy} trackable={!startingNewQuest && Boolean(quest?.status === "active" && !currentNodeId && activeTabSupported)} notice={notice || hint} drawer={drawer} onBegin={begin} onAction={action} onFinish={finish} onNewQuest={() => { setNotice(""); setHint(""); setStartingNewQuest(true); }} onDrawer={setDrawer} onUnseal={unseal} onReplayIntro={onboarding.replay} />;
 }
 
 export function SidePanelPreview() {
