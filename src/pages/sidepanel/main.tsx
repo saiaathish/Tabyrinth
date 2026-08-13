@@ -76,7 +76,6 @@ export type SidePanelProps = {
   onBegin?: (title: string) => void;
   onAction?: (action: SidePanelAction) => void;
   onFinish?: () => void;
-  onArcade?: () => void;
   onDrawer?: (drawer: DrawerName) => void;
   onUnseal?: (portal: PortalItem) => void;
   lootComposer?: boolean;
@@ -84,7 +83,7 @@ export type SidePanelProps = {
   onLootSave?: (note: string, close: boolean) => void;
 };
 
-export function SidePanel({ state, quest, trail, portals, loot, busy = false, notice = "", drawer = null, onBegin, onAction, onFinish, onArcade, onDrawer, onUnseal, lootComposer = false, onLootComposer, onLootSave }: SidePanelProps) {
+export function SidePanel({ state, quest, trail, portals, loot, busy = false, notice = "", drawer = null, onBegin, onAction, onFinish, onDrawer, onUnseal, lootComposer = false, onLootComposer, onLootSave }: SidePanelProps) {
   const goalId = useId();
   const [goal, setGoal] = useState("");
   const portalsTriggerRef = useRef<HTMLButtonElement>(null);
@@ -104,7 +103,6 @@ export function SidePanel({ state, quest, trail, portals, loot, busy = false, no
         <input id={goalId} value={goal} maxLength={120} required autoFocus placeholder="Ship the next release" onChange={(event) => setGoal(event.target.value)} />
         <Button type="submit" disabled={busy || !goal.trim()}>{busy ? "Beginning…" : "Begin Quest"}</Button>
       </form>
-      <button type="button" className="text-control arcade-entry" onClick={onArcade}>Try Arcade</button>
       {state === "unsupported" && <p className="inline-alert" role="alert">Use a normal web page to begin.</p>}
     </section> : <>
       <section className="quest-heading" aria-label="Active Quest"><h1>{quest.title}</h1><button type="button" className="text-control" onClick={onFinish} disabled={busy}>Finish</button></section>
@@ -125,7 +123,6 @@ export function SidePanel({ state, quest, trail, portals, loot, busy = false, no
       <footer className="instrument-footer">
         <button ref={portalsTriggerRef} type="button" className="collection-trigger" aria-expanded={drawer === "portals"} aria-controls="portals-drawer" onClick={() => { lastDrawerTriggerRef.current = portalsTriggerRef.current; onDrawer?.(drawer === "portals" ? null : "portals"); }}><span>{portals.length}</span> Portals</button>
         <button ref={lootTriggerRef} type="button" className="collection-trigger" aria-expanded={drawer === "loot"} aria-controls="loot-drawer" onClick={() => { lastDrawerTriggerRef.current = lootTriggerRef.current; onDrawer?.(drawer === "loot" ? null : "loot"); }}><span>{loot.length}</span> Loot</button>
-        <button type="button" className="text-control" onClick={onArcade}>Arcade</button>
       </footer>
       <Drawer open={drawer} portals={portals} loot={loot} busy={busy} triggerRef={lastDrawerTriggerRef} onClose={() => onDrawer?.(null)} onUnseal={(portal) => onUnseal?.(portal)} />
     </>}
@@ -208,14 +205,13 @@ function LiveSidePanel() {
   };
   const finish = () => { if (quest) void perform(() => chrome.runtime.sendMessage({ type: "PORTAL_FINISH", questId: quest.id }), "Quest complete."); };
   const unseal = (portal: PortalItem) => { setState("restoring"); void perform(() => chrome.runtime.sendMessage({ type: "PORTAL_UNSEAL", portalId: portal.id }), "Branch unsealed."); };
-  const arcade = () => { void chrome.tabs.create({ url: chrome.runtime.getURL("popup.html?arcade=1") }); };
   const saveLoot = (note: string, close: boolean) => {
     if (!currentNodeId) return;
     void perform(() => chrome.runtime.sendMessage({ type: "PORTAL_SAVE_LOOT", nodeId: currentNodeId, ...(note ? { note } : {}), ...(close ? { close: true } : {}) }), close ? "Loot saved. Tab closed." : "Loot saved.").then((result) => {
       if (result) setLootComposer(false);
     });
   };
-  return <SidePanel state={state} quest={quest} trail={trail} portals={portals} loot={loot} busy={busy} notice={notice} drawer={drawer} lootComposer={lootComposer} onLootComposer={setLootComposer} onLootSave={saveLoot} onBegin={begin} onAction={action} onFinish={finish} onArcade={arcade} onDrawer={setDrawer} onUnseal={unseal} />;
+  return <SidePanel state={state} quest={quest} trail={trail} portals={portals} loot={loot} busy={busy} notice={notice} drawer={drawer} lootComposer={lootComposer} onLootComposer={setLootComposer} onLootSave={saveLoot} onBegin={begin} onAction={action} onFinish={finish} onDrawer={setDrawer} onUnseal={unseal} />;
 }
 
 export function SidePanelPreview() {

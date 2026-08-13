@@ -34,7 +34,6 @@ h1, h2, p { margin-top: 0; } h1 { font: 650 1.4rem/1.1 Georgia, serif; margin-bo
 .quest-start input::placeholder { color: #929b9188; }
 .quest-start input:focus-visible { border-color: var(--ui-acid); box-shadow: 0 2px 0 -1px var(--ui-acid); }
 .quest-start .ui-button { justify-self: start; margin-top: 8px; }
-.arcade-entry { justify-self: start; margin-top: 20px; }
 .inline-alert { color: var(--ui-red); font-size: .72rem; margin: 16px 0 0; }
 .quest-heading { align-items: start; display: flex; gap: 16px; justify-content: space-between; padding: 24px 0 16px; }
 .quest-heading h1 { font: 650 clamp(1.4rem, 7vw, 2rem)/1.05 Georgia, Cambria, serif; letter-spacing: -.025em; max-width: 15ch; overflow-wrap: anywhere; }
