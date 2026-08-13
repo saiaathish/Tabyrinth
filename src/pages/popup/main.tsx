@@ -316,7 +316,7 @@ export function App() {
 const css = `
 :root {
   color-scheme: dark;
-  font: 14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --void: #090c0b;
   --ink: #111615;
   --line: #2c3734;
@@ -371,11 +371,13 @@ button:focus-visible {
     linear-gradient(90deg, rgb(255 255 255 / 0.025) 1px, transparent 1px),
     linear-gradient(rgb(255 255 255 / 0.025) 1px, transparent 1px);
   background-size: 32px 32px;
+  border-top: 2px solid var(--acid);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
 }
 
-.launcher { padding: 25px 18px 17px; }
+.launcher { padding: 22px 18px 17px; }
 
-.launcher header { border-left: 2px solid var(--acid); padding-left: 12px; }
+.launcher header { border-left: 2px solid var(--acid); padding: 3px 0 4px 12px; }
 
 .launcher h1,
 .arcade-mode h1 {
@@ -393,10 +395,12 @@ button:focus-visible {
 
 .launcher header p { margin: 8px 0 0; }
 
+.launcher header p { font-size: 0.78rem; letter-spacing: 0.01em; }
+
 .trail-mark {
   display: block;
   height: 72px;
-  margin: 17px 0 15px;
+  margin: 17px 0 13px;
   width: 100%;
 }
 
@@ -419,6 +423,7 @@ button:focus-visible {
   justify-content: space-between;
   letter-spacing: 0.035em;
   width: 100%;
+  box-shadow: 4px 4px 0 rgb(110 231 228 / 0.2);
 }
 
 .primary-action span { font-size: 1.2rem; font-weight: 500; }
@@ -433,6 +438,8 @@ button:focus-visible {
   border-color: var(--muted);
   background: rgb(255 255 255 / 0.035);
 }
+
+.quiet:active:not(:disabled) { transform: translateY(1px); }
 
 .arcade-link {
   border-color: transparent;
@@ -469,9 +476,10 @@ button:focus-visible {
 }
 
 .arcade-mode h1 {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 760;
   font-size: 1.55rem;
-  letter-spacing: 0;
+  letter-spacing: -0.04em;
   line-height: 1.05;
 }
 
@@ -481,10 +489,12 @@ button:focus-visible {
   border-top: 1px solid var(--line);
   margin-top: 19px;
   padding-top: 16px;
+  border-left: 1px solid var(--line);
+  padding-left: 12px;
 }
 
 .empty-state h2 {
-  font: 650 1.15rem/1.1 Georgia, "Times New Roman", serif;
+  font: 700 1.1rem/1.1 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   margin: 0 0 7px;
 }
 
@@ -509,6 +519,8 @@ button:focus-visible {
 
 .arcade-map li + li { border-top: 0; }
 .arcade-map li[data-state="active"] { border-color: var(--acid); color: var(--bone); }
+
+.arcade-map li[data-state="active"] { background: rgb(200 255 99 / 0.06); box-shadow: inset 2px 0 0 var(--acid); }
 
 .room-index {
   color: var(--cyan);

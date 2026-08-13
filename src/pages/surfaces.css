@@ -110,3 +110,44 @@ h1, h2, p { margin-top: 0; } h1 { font: 650 1.4rem/1.1 Georgia, serif; margin-bo
 @keyframes instrument-pulse { to { opacity: .25; } }
 @media (max-height: 520px) { .quest-start { min-height: auto; padding: 36px 0 10px; } .quest-trail li { min-height: 43px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; transform: none !important; } }
+
+/* Rendered refinement: a single field-instrument grid keeps the route legible
+   while the acid seam only appears where a safe action is available. */
+.surface { max-width: 520px; padding-inline: clamp(16px, 4vw, 28px); }
+.surface::after { background: linear-gradient(90deg, var(--ui-acid), transparent 72%); content: ""; height: 1px; inset: 0 0 auto; opacity: .72; pointer-events: none; position: absolute; }
+.surface::before { background: linear-gradient(90deg, transparent 0 12px, #e8e3d50d 12px 13px), linear-gradient(#e8e3d508 1px, transparent 1px); background-size: 32px 32px; content: ""; inset: 0; opacity: .24; pointer-events: none; position: fixed; z-index: -1; }
+.surface > * { position: relative; }
+.instrument-header { padding-top: 4px; }
+.instrument-header .ui-signal { font-size: .62rem; }
+.quest-heading { align-items: end; border-bottom: 1px solid var(--ui-ash); margin-bottom: 8px; padding-block: 24px 16px; }
+.quest-heading h1 { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 720; letter-spacing: -.04em; }
+.quest-start { min-height: calc(100dvh - 84px); }
+.quest-start label, .decision h2, .collection-drawer > header > strong, .portal-empty h1 { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.quest-start label { font-weight: 760; letter-spacing: -.05em; }
+.quest-start form { border-inline-start: 1px solid var(--ui-ash); padding-inline-start: 15px; }
+.quest-start .ui-button { margin-top: 10px; }
+.quest-trail { margin-top: 4px; }
+.quest-trail::before { background: linear-gradient(var(--ui-ash), var(--ui-ash)) center / 1px 100% no-repeat; }
+.quest-trail li { min-height: 56px; }
+.trail-mark { border: 1px solid var(--ui-ash); font-size: .55rem; height: 15px; width: 15px; }
+.quest-trail li[data-current="true"] .trail-mark { background: var(--ui-acid); border-color: var(--ui-acid); color: #10140d; }
+.decision { background: linear-gradient(90deg, #b7f34a08, transparent 72%); border-block-color: var(--ui-ash); margin-top: 18px; padding: 18px 14px 18px 16px; position: relative; }
+.decision::before { background: var(--ui-acid); content: ""; height: 100%; inset: 0 auto 0 0; position: absolute; width: 2px; }
+.decision[data-state="unsafe"]::before, .decision[data-state="error"]::before, .decision[data-state="missing-origin"]::before, .decision[data-state="partial"]::before { background: var(--ui-red); }
+.decision .ui-button { justify-self: start; }
+.secondary-actions { gap: 14px 20px; }
+.collection-drawer { border-top-color: var(--ui-acid); }
+.portal-identity { gap: 27px; padding-top: 42px; }
+.portal-identity h1 { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 760; letter-spacing: -.045em; }
+.portal-identity p { color: var(--ui-cyan); }
+.portal-fork { border-block-color: var(--ui-ash); }
+.portal-contents li > div { border-bottom-color: var(--ui-ash); }
+.portal-contents li:hover > div { border-bottom-color: var(--ui-cyan); }
+.portal-actions { border-top: 1px solid var(--ui-ash); padding-top: 17px; }
+.portal-actions .ui-button { min-width: 145px; }
+.portal-empty { min-height: 70dvh; }
+@media (max-width: 360px) {
+  .surface { padding-inline: 14px; }
+  .portal-identity { gap: 16px; grid-template-columns: 78px minmax(0, 1fr); }
+  .folded-artifact { transform: scale(.9); transform-origin: left bottom; }
+}

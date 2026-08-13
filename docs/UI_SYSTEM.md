@@ -49,6 +49,14 @@ React Bits MCP inspection covered compact button, form, loader, text, list, draw
 Selected: one adapted Folder visual. It communicates “pages sealed” without owning business state. Rejected: text reveals, counters, pointer magnetism, click sparks, shine loops, canvas particles, and continuous loaders because they add task cost, keyboard/reduced-motion risk, or decoration without state value. See `THIRD_PARTY_NOTICES.md` for attribution and license boundary.
 
 Why this is not generic: the visual grammar treats browser ancestry as an instrument readout—one vertical trail, acid-green action seam, and a folded Portal artifact—rather than applying a dashboard card kit.
+
+## Rendered refinement — 2026-08-12
+
+- Side Panel and Portal now share a thin acid top seam, quiet topology grid, and a responsive 520px reading measure. The current trail node is identified by a filled marker plus text, not color alone.
+- Primary actions gain a restrained offset shadow on hover and a physical press state; reduced-motion removes both transform and shadow. Drawers keep native focus order and remain the only elevated surface.
+- Popup launcher and Arcade retain their compatibility behavior while using the same system font stack, active-row rail, and 44px action targets. Room display headings moved to the same sans display treatment so the extension reads as one product.
+- No runtime dependency was added. The Folder artifact remains the only React Bits-inspired visual; all other refinement is local CSS and native controls.
+
 # Portal Fold surfaces
 
 The Portal and Side Panel use native semantic controls plus one adapted Folder visual. Native CSS supplies state feedback, focus-visible outlines, mutually exclusive drawers, compact collection affordances, and a reduced-motion equivalent.

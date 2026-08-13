@@ -37,6 +37,28 @@ describe("Portal restore adapter", () => {
     expect(result.ok).toBe(true);
     expect(s.calls).toEqual(["create:20:7", "bind:n1:20", "activate:20", "remove:99"]);
   });
+
+  it("pins new branch tabs to the live origin window", async () => {
+    const branch = node("n1", "o", "https://branch.test");
+    const child = node("n2", "n1", "https://child.test");
+    const s = setup([branch, child], { "7": { nodeId: "o", windowId: 4 } }, child.id);
+    s.graph.nodes.o = node("o", null, "https://origin.test");
+    const creates: Array<{ url: string; windowId?: number; openerTabId?: number }> = [];
+    const result = await restorePortal(s.portal, s.graph, {
+      ...s.adapter,
+      getTab: async (id) => ({ id, windowId: 4, url: id === 7 ? "https://origin.test" : "" }),
+      createTab: async (input) => {
+        creates.push(input);
+        const tab = { id: creates.length + 19, windowId: input.windowId ?? 4, url: input.url };
+        return tab;
+      },
+    });
+    expect(result.ok).toBe(true);
+    expect(creates).toEqual([
+      { url: "https://branch.test", windowId: 4, openerTabId: 7 },
+      { url: "https://child.test", windowId: 4, openerTabId: 20 },
+    ]);
+  });
   it("returns a retryable failure when the origin lookup fails", async () => {
     const s = setup([node("n1", "o", "https://same.test")], { "7": { nodeId: "o", windowId: 1 } });
     const result = await restorePortal(s.portal, s.graph, { ...s.adapter, getTab: async () => { throw new Error("origin lookup failed"); } });
