@@ -2,6 +2,11 @@ import { activateRoomTab, activateRun, resetRun, restoreManagedTab, spawnVoid, s
 import { storage } from "../platform/chrome-storage";
 import { reduceGame } from "../game/reducer";
 import type { GameState, Message, RoomGameAction, RoomKind } from "../game/types";
+import { handleQuestMessage, handleQuestTabRemoved, isQuestMessage, reconcileQuestSession, restoreQuestTab, restoreQuestWorkspace } from "../quest/runtime";
+import { parsePortalMessage } from "../portal/messages";
+import { beginPortalQuest, capturePortalCreated, capturePortalRemoved, capturePortalUpdated, deletePortal, finishActivePortalQuest, foldPortal, getPortalState, markPortalPath, renamePortal, savePortalLoot, unsealPortal } from "../portal/runtime";
+import { portalStorage } from "../portal/storage";
+import { portalReducer } from "../portal/reducer";
 
 let registered = false;
 let reconcileTimer: ReturnType<typeof setTimeout> | undefined;
@@ -87,6 +92,17 @@ function isPopupSender(sender: chrome.runtime.MessageSender): boolean {
   }
 }
 
+function isPortalSender(sender: chrome.runtime.MessageSender): boolean {
+  if (!sender.url) return false;
+  try {
+    const actual = new URL(sender.url);
+    return ["portal.html", "sidepanel.html"].some((page) => {
+      const expected = new URL(chrome.runtime.getURL(page));
+      return actual.protocol === expected.protocol && actual.host === expected.host && actual.pathname === expected.pathname;
+    });
+  } catch { return false; }
+}
+
 const reconcile = () => {
   if (reconcileTimer) clearTimeout(reconcileTimer);
   reconcileTimer = setTimeout(() => {
@@ -97,7 +113,20 @@ const reconcile = () => {
   }, 50);
 };
 
+const reconcileQuest = () => {
+  void enqueueMutation(async () => { await reconcileQuestSession(); await restoreQuestWorkspace(); });
+};
+
 async function onRemoved(tabId: number) {
+  const portalSession = await portalStorage.getSession();
+  const portalId = Object.entries(portalSession.portalTabIds).find(([, id]) => id === tabId)?.[0];
+  if (portalId) {
+    delete portalSession.portalTabIds[portalId];
+    await portalStorage.setSession(portalSession);
+    const portalState = await portalStorage.get();
+    const removedPortal = portalState.portals[portalId];
+    if (removedPortal?.status === "sealed" || removedPortal?.status === "error") await portalStorage.set(portalReducer(portalState, { type: "PORTAL_TAB_LOST", portalId }));
+  }
   const state = await managedRoom(tabId);
   if (!state) return;
   const room = state.roomIdByTabId[String(tabId)];
@@ -136,17 +165,40 @@ async function handleGameAction(message: Extract<Message, { type: "GAME_ACTION" 
 export function registerServiceWorkerListeners() {
   if (registered) return;
   registered = true;
+  chrome.action?.onClicked?.addListener((tab) => { if (tab.windowId !== undefined) void chrome.sidePanel?.open({ windowId: tab.windowId }); });
   chrome.tabs.onMoved.addListener(() => reconcile());
-  chrome.tabs.onRemoved.addListener((tabId) => void enqueueMutation(() => onRemoved(tabId)));
-  chrome.tabs.onDetached.addListener((tabId) => void enqueueMutation(() => restoreManagedTab(tabId)));
-  chrome.tabs.onAttached.addListener(() => reconcile());
+  chrome.tabs.onActivated?.addListener(() => reconcile());
+  chrome.tabs.onRemoved.addListener((tabId) => void enqueueMutation(async () => { await onRemoved(tabId); await handleQuestTabRemoved(tabId); await capturePortalRemoved(tabId); }));
+  chrome.tabs.onCreated?.addListener((tab) => void enqueueMutation(() => capturePortalCreated(tab)));
+  chrome.tabs.onDetached.addListener((tabId) => void enqueueMutation(async () => { await restoreManagedTab(tabId); await restoreQuestTab(tabId); }));
+  chrome.tabs.onAttached.addListener((tabId) => { reconcile(); void enqueueMutation(async () => { await restoreQuestTab(tabId); }); });
   chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.groupId === -1 || tab.groupId === -1) void enqueueMutation(async () => { if (await managedRoom(tabId)) await restoreManagedTab(tabId); });
+    if (tab.url || tab.title || tab.favIconUrl) void enqueueMutation(() => capturePortalUpdated(tabId, tab));
+    if (changeInfo.groupId !== undefined || tab.groupId === -1 || tab.windowId !== undefined) void enqueueMutation(async () => { if (await managedRoom(tabId)) await restoreManagedTab(tabId); await restoreQuestTab(tabId); });
     else reconcile();
   });
+  chrome.runtime.onStartup?.addListener(reconcileQuest);
+  chrome.runtime.onInstalled?.addListener(reconcileQuest);
+  reconcileQuest();
 }
 
 export async function handleMessage(value: unknown, sender: chrome.runtime.MessageSender) {
+  if (isQuestMessage(value)) return enqueueMutation(() => handleQuestMessage(value, sender));
+  const portalMessage = parsePortalMessage(value);
+  if (portalMessage) {
+    if (!isPortalSender(sender)) return undefined;
+    return enqueueMutation(async () => {
+      if (portalMessage.type === "PORTAL_GET") return getPortalState();
+      if (portalMessage.type === "PORTAL_BEGIN") return beginPortalQuest(portalMessage.title);
+      if (portalMessage.type === "PORTAL_FINISH") return finishActivePortalQuest(portalMessage.questId);
+      if (portalMessage.type === "PORTAL_MARK_PATH") return markPortalPath(portalMessage.nodeId);
+      if (portalMessage.type === "PORTAL_SAVE_LOOT") return savePortalLoot(portalMessage.nodeId, portalMessage.note, portalMessage.close);
+      if (portalMessage.type === "PORTAL_RENAME") return renamePortal(portalMessage.portalId, portalMessage.title);
+      if (portalMessage.type === "PORTAL_DELETE") return deletePortal(portalMessage.portalId);
+      if (portalMessage.type === "PORTAL_FOLD") return foldPortal(portalMessage.questId, portalMessage.currentNodeId);
+      return unsealPortal(portalMessage.portalId);
+    });
+  }
   const message = parseMessage(value);
   if (!message) return undefined;
   if (message.type === "GET_STATE") return enqueueMutation(async () => {

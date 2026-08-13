@@ -10,7 +10,7 @@ The complete judge path (real Chrome tab reorder, Vault/Boss puzzle, VOID tab, a
 
 ## Load the extension locally
 
-Requirements: Node.js 22+ and Chrome with Developer mode enabled. The current lockfile uses jsdom/undici releases whose engines require Node 22 or newer.
+Requirements: Node.js 22+ and Chrome 116+ with Developer mode enabled. Chrome 116 is the minimum supported version for the Side Panel API. The current lockfile uses jsdom/undici releases whose engines require Node 22 or newer.
 
 ```sh
 npm ci

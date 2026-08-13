@@ -28,7 +28,7 @@ describe("service worker lifecycle",()=>{
     const mock=createChromeMock(); vi.stubGlobal("chrome",mock.chrome);
     await import("./service-worker");
     const counts=Object.values(mock.listeners).map((listener)=>listener.listeners.length);
-    expect(counts).toEqual([1,1,1,1,1]);
+    expect(counts).toEqual([1,1,1,1,1,1]);
   });
 
   it("rejects gameplay actions from unrelated tabs",async()=>{

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { GameState, RoomKind } from "../game/types";
 import { STATE_KEY } from "../platform/chrome-storage";
 import { createChromeMock } from "../test/mocks/chrome";
+import { createPortalSnapshot } from "../portal/types";
 
 type RoomSpec = { roomId: string; kind: RoomKind; tabId: number };
 
@@ -32,6 +33,13 @@ const roomSender = (tabId = 11, roomId = "entrance", runId = "run") => ({
 describe("service worker security and lifecycle contracts", () => {
   beforeEach(() => vi.resetModules());
   afterEach(() => vi.unstubAllGlobals());
+
+  it("authorizes Portal messages from the Side Panel surface", async () => {
+    const mock = createChromeMock();
+    vi.stubGlobal("chrome", mock.chrome);
+    const { handleMessage } = await import("./service-worker");
+    await expect(handleMessage({ type: "PORTAL_GET" }, { url: "chrome-extension://test/sidepanel.html" } as chrome.runtime.MessageSender)).resolves.toMatchObject({ state: { portals: {} } });
+  });
 
   it("rejects malformed and over-posted messages before mutating storage", async () => {
     const mock = createChromeMock();
@@ -230,5 +238,24 @@ describe("service worker security and lifecycle contracts", () => {
     await handleMessage({ type: "START_RUN" }, roomSender());
     expect(mock.session[STATE_KEY]).toBeUndefined();
     expect(mock.grouped).toEqual([]);
+  });
+
+  it("marks a manually closed Portal unavailable without deleting its snapshot", async () => {
+    const mock = createChromeMock();
+    const origin = { id: "origin", questId: "q", parentNodeId: null, url: "https://origin.test", title: "Origin", faviconUrl: null, disposition: "path" as const, status: "live" as const, createdAt: 1, updatedAt: 1 };
+    const branch = { ...origin, id: "branch", parentNodeId: "origin", url: "https://branch.test", title: "Branch", disposition: "portal" as const, status: "sealed" as const };
+    const graph = { nodes: { origin, branch }, tabBindings: {} };
+    const snapshot = createPortalSnapshot(graph, "p", "q", "origin", "branch", "branch", ["branch"], 1);
+    mock.session["tabyrinth.portals"] = { portals: { p: { id: "p", questId: "q", title: "Branch", originNodeId: "origin", branchRootNodeId: "branch", nodeIds: ["branch"], portalNodeId: "p:portal", portalTabId: 90, status: "sealed", createdAt: 1, updatedAt: 1, snapshot, restoreStatus: "idle", restoredNodeIds: [], error: null } }, folds: {} };
+    mock.session["tabyrinth.portalBindings"] = { portalTabIds: { p: 90 }, bindings: {} };
+    vi.stubGlobal("chrome", mock.chrome);
+    await import("./service-worker");
+    mock.listeners.removed.listeners[0]!(90);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const state = mock.session["tabyrinth.portals"] as { portals: Record<string, { status: string; error: string | null; snapshot: unknown }> };
+    expect(state.portals.p.status).toBe("error");
+    expect(state.portals.p.error).toBe("PORTAL_TAB_UNAVAILABLE");
+    expect(state.portals.p.snapshot).toEqual(snapshot);
+    expect((mock.session["tabyrinth.portalBindings"] as { portalTabIds: Record<string, number> }).portalTabIds).toEqual({});
   });
 });

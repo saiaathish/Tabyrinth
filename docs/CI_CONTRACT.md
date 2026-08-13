@@ -9,8 +9,8 @@ Required checks:
 - `npm run lint`
 - `npm test`
 - `npm run build`
-- `test -f dist/manifest.json`
+- `npm run validate:extension`
 
-The build artifact check confirms the Vite output includes the extension manifest. It does not prove that Chrome accepts the unpacked extension or that the UI/game is correct.
+The extension validator checks MV3 manifest shape, service-worker and Side Panel wiring, emitted HTML entrypoints, local bundle references, and the absence of host permissions or remote document-shell URLs. It does not prove that Chrome accepts the unpacked extension or that the UI/game is correct.
 
 CI cannot prove real Chrome tab dragging, tab order as game topology, tab creation/closure, tab isolation, popup/room visuals, service-worker lifecycle behavior, or the complete manual demo. Those require a recorded, real-browser session.
