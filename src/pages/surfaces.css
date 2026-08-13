@@ -26,6 +26,16 @@ h1, h2, p { margin-top: 0; } h1 { font: 650 1.4rem/1.1 Georgia, serif; margin-bo
 .instrument-header { align-items: center; border-bottom: 1px solid var(--ui-ash); display: flex; justify-content: space-between; min-height: 36px; padding-bottom: 11px; }
 .wordmark { font: 760 .71rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .22em; }
 .quest-start { display: grid; min-height: calc(100dvh - 100px); place-content: center stretch; }
+.onboarding { display: grid; align-content: center; min-height: calc(100dvh - 100px); gap: 22px; }
+.onboarding-meta { align-items: center; display: flex; justify-content: space-between; color: var(--ui-muted); font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .12em; }
+.onboarding-copy { border-inline-start: 1px solid var(--ui-ash); padding-inline-start: 15px; }
+.onboarding-copy h1 { font: 760 clamp(1.7rem, 8vw, 2.35rem)/1.02 ui-sans-serif, system-ui, sans-serif; letter-spacing: -.055em; margin: 0; max-width: 11ch; }
+.onboarding-copy p { color: var(--ui-muted); line-height: 1.55; margin: 12px 0 0; max-width: 32ch; }
+.onboarding-steps { display: flex; gap: 14px; list-style: none; margin: 0; padding: 0; color: var(--ui-muted); font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; }
+.onboarding-steps li { align-items: center; display: flex; gap: 6px; }
+.onboarding-steps li[data-current="true"] { color: var(--ui-acid); }
+.onboarding-actions { align-items: center; display: flex; gap: 18px; }
+@media (prefers-reduced-motion: reduce) { .onboarding, .onboarding * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
 .quest-start form { display: grid; gap: 12px; }
 .quest-start label { font: 600 clamp(1.45rem, 7vw, 2.05rem)/1.08 Georgia, Cambria, serif; letter-spacing: -.025em; max-width: 12ch; text-wrap: balance; }
 .quest-start input { appearance: none; background: transparent; border: 0; border-bottom: 1px solid var(--ui-muted); border-radius: 0; color: var(--ui-bone); font: 500 .95rem/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; min-width: 0; outline: 0; padding: 13px 0 10px; }

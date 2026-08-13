@@ -1,6 +1,6 @@
 # TABYRINTH
 
-TABYRINTH turns your real Chrome tab strip into a dungeon: every managed tab is a room, dragging tabs rewires the level, and closing tabs can destroy parts of the world.
+TABYRINTH helps you explore browser rabbit holes without losing your main task. Set a Quest, browse normally, and when you wander away from your Main Path, fold the entire Detour into one Portal. TABYRINTH returns you to the fork; open the Portal later to restore the trail.
 
 ## Current state
 
@@ -24,16 +24,13 @@ npm run build
 
 No account, API key, backend, or network service is required by the product. Reload the extension from `chrome://extensions` after rebuilding.
 
-## 90-second demo sequence
+## How it works
 
-Use only a clean Chrome window and the tabs created by TABYRINTH. Keep the browser tab bar visible.
-
-1. **0–10s — Hook:** show the TABYRINTH group and say: “These five Chrome tabs are the dungeon.”
-2. **10–20s — Topology:** drag the `Vault` tab. Show the in-game topology changing and say: “Dragging the real browser tab rewires the level.”
-3. **20–45s — Explore:** move through rooms, obtain the Sigil, and reach the boss.
-4. **45–60s — Puzzle:** if the boss rejects the Sigil, drag `Vault` beside `Boss`; show the shield change.
-5. **60–75s — VOID:** let the boss create the real `VOID` tab, then close that tab and show the rift clearing.
-6. **75–90s — AO evidence:** show only real AO session/branch/PR/CI/review records from `docs/ao-evidence/`. Current real-browser evidence status: `UNVERIFIED`.
+1. Start a Quest: what you are trying to finish.
+2. Browse normally. The root becomes your Main Path.
+3. Keep useful pages on the Main Path.
+4. When a branch wanders away, fold the Detour.
+5. Reopen its Portal later to restore the trail.
 
 If any step is not manually verified, stop the sequence and mark it unverified. CI cannot prove real Chrome tab dragging, tab creation, tab isolation, or visual gameplay.
 
@@ -56,7 +53,7 @@ See [docs/CI_CONTRACT.md](docs/CI_CONTRACT.md) for the CI contract and [docs/DEM
 
 - Published `main` is the PR #17 merge above; this branch includes the open PR #18 candidate and additional uncommitted hardening.
 - Chrome behavior and permissions still require manual validation in a real browser.
-- Automated checks do not prove real tab dragging, tab-group behavior, service-worker wake behavior, popup/room presentation, or the full boss/Void run.
+- Automated checks do not prove real Chrome tab creation, closure, service-worker wake behavior, or visual presentation.
 - Chrome Web Store packaging and distribution are out of scope.
 
 ## AO build evidence

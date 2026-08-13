@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { Button, Signal } from "../../ui";
 import type { PortalQuest } from "../../portal/quest";
 import "../surfaces.css";
+import { Onboarding, useOnboarding } from "./onboarding";
 
 export type SidePanelState = "loading" | "start" | "active" | "nothing-to-fold" | "unsupported" | "unsafe" | "missing-origin" | "sealed" | "restoring" | "partial" | "error" | "complete";
 export type SidePanelAction = "fold" | "keep";
@@ -11,8 +12,8 @@ export type PortalGraph = { nodes: Record<string, { id: string; questId: string;
 export type PortalItem = { id: string; title: string; nodeIds: string[]; status: string; restoreStatus?: string; restoredNodeIds?: string[]; error?: string | null };
 
 const copy: Record<Exclude<SidePanelState, "start" | "loading">, { label: string; title: string; body?: string }> = {
-  active: { label: "DETOUR", title: "Fold this branch?", body: "Seals this detour and returns to the fork." },
-  "nothing-to-fold": { label: "ON PATH", title: "No detour open." },
+  active: { label: "DETOUR", title: "Fold this detour", body: "Seals the branch and returns to the Main Path." },
+  "nothing-to-fold": { label: "ON MAIN PATH", title: "Browse normally.", body: "Fold appears when a detour forms." },
   unsupported: { label: "PAUSED", title: "This tab is unsupported.", body: "Use a normal web page." },
   unsafe: { label: "SAFE STOP", title: "Fold blocked.", body: "Ownership could not be verified. No tabs changed." },
   "missing-origin": { label: "ORIGIN LOST", title: "The fork is closed.", body: "The Portal stays sealed for recovery." },
@@ -102,10 +103,10 @@ export function SidePanel({ state, quest, trail, portals, busy = false, notice =
       <Trail trail={trail} />
       <section className="decision" data-state={state}>
         <div aria-live="polite"><h2>{stateCopy?.title}</h2>{stateCopy?.body && <p>{stateCopy.body}</p>}</div>
-        {state === "active" && <Button disabled={busy} onClick={() => onAction?.("fold")}>{busy ? "Folding…" : "Fold this detour"}</Button>}
+        {state === "active" && <Button disabled={busy} onClick={() => onAction?.("fold")}>{busy ? "Folding…" : `FOLD ${Math.max(1, trail.filter((node) => node.disposition !== "path").length)}-TAB DETOUR`}</Button>}
         {state === "unsafe" && <Button disabled={busy} onClick={() => onAction?.("fold")}>Retry fold</Button>}
         {state !== "complete" && <div className="secondary-actions">
-          <button type="button" className="text-control" disabled={busy || !trail.length} onClick={() => onAction?.("keep")}>Keep on path</button>
+          <button type="button" className="text-control" disabled={busy || !trail.length || trail[trail.length - 1]?.disposition !== "unclassified"} onClick={() => onAction?.("keep")}>Keep this page on Main Path</button>
         </div>}
       </section>
       <footer className="instrument-footer">
@@ -135,6 +136,7 @@ function errorState(reason: string): SidePanelState {
 }
 
 function LiveSidePanel() {
+  const onboarding = useOnboarding();
   const [state, setState] = useState<SidePanelState>("loading");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
@@ -189,6 +191,7 @@ function LiveSidePanel() {
   };
   const finish = () => { if (quest) void perform(() => chrome.runtime.sendMessage({ type: "PORTAL_FINISH", questId: quest.id }), "Quest complete."); };
   const unseal = (portal: PortalItem) => { setState("restoring"); void perform(() => chrome.runtime.sendMessage({ type: "PORTAL_UNSEAL", portalId: portal.id }), "Branch unsealed."); };
+  if (onboarding.state && !onboarding.state.completed && state !== "loading") return <main className="surface sidepanel" aria-labelledby="sidepanel-title"><header className="instrument-header"><span className="wordmark" id="sidepanel-title">TABYRINTH</span></header><Onboarding onComplete={onboarding.complete} /></main>;
   return <SidePanel state={state} quest={quest} trail={trail} portals={portals} busy={busy} notice={notice} drawer={drawer} onBegin={begin} onAction={action} onFinish={finish} onDrawer={setDrawer} onUnseal={unseal} />;
 }
 

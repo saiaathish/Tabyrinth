@@ -74,6 +74,19 @@ describe("Portal Chrome ancestry capture", () => {
     expect((local[BRANCH_GRAPH_KEY] as BranchGraph).nodes.live?.status).toBe("live");
   });
 
+  it("detaches a drifted binding without closing the durable node or Portal tabs", async () => {
+    const drifted = node("drifted", "quest-a");
+    seed({ nodes: { drifted }, tabBindings: { "7": { nodeId: drifted.id, windowId: 3 } } });
+    session[PORTAL_SESSION_KEY] = { portalTabIds: { saved: 90 }, bindings: { "7": { nodeId: drifted.id, windowId: 3 } } } satisfies PortalSession;
+    (chrome.tabs.get as unknown as ReturnType<typeof vi.fn>) = vi.fn(async (id: number) => ({ id, windowId: 3, url: "https://different.test" }));
+
+    await reconcilePortalSession();
+
+    expect((session[PORTAL_SESSION_KEY] as PortalSession).bindings).toEqual({});
+    expect((session[PORTAL_SESSION_KEY] as PortalSession).portalTabIds).toEqual({ saved: 90 });
+    expect((local[BRANCH_GRAPH_KEY] as BranchGraph).nodes.drifted?.status).toBe("live");
+  });
+
   it("inherits Quest ownership only from the explicit live opener", async () => {
     const unrelated = node("unrelated", "quest-wrong");
     const opener = node("opener", "quest-right");

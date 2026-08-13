@@ -1,4 +1,19 @@
 import type { BranchGraph, BranchNode, BranchNodeId } from "../branch/types";
+import type { PortalQuest } from "./quest";
+
+export type CurrentDetour = { forkNodeId: string; branchRootNodeId: string; currentNodeId: string; nodeIds: string[]; tabCount: number };
+
+export const deriveCurrentDetour = (graph: BranchGraph, quest: PortalQuest | null, currentNodeId: string | null): CurrentDetour | null => {
+  if (!quest || !currentNodeId) return null;
+  const current = graph.nodes[currentNodeId];
+  if (!current || current.questId !== quest.id || current.status !== "live" || current.disposition === "path") return null;
+  const fork = findNearestPathAncestor(graph, currentNodeId);
+  const root = findBranchRoot(graph, currentNodeId);
+  if (!fork || !root) return null;
+  const nodeIds = getDescendants(graph, root.id).filter((node) => node.status === "live" && node.questId === quest.id).map((node) => node.id);
+  const tabCount = nodeIds.filter((id) => Object.values(graph.tabBindings).some((binding) => binding.nodeId === id)).length;
+  return nodeIds.length ? { forkNodeId: fork.id, branchRootNodeId: root.id, currentNodeId, nodeIds, tabCount } : null;
+};
 
 /** The closest path node on the durable ancestry chain, including `nodeId`. */
 export const findNearestPathAncestor = (graph: BranchGraph, nodeId: BranchNodeId): BranchNode | null => {

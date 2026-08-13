@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createRoot } from "react-dom/client";
 import { act } from "react";
 import { SidePanel, type PortalItem, type TrailNode } from "./main";
+import { Onboarding } from "./onboarding";
 
 const quest = { id: "q", title: "Ship the next release", rootNodeId: "a", currentNodeId: "c", status: "active" as const, createdAt: 1, completedAt: null };
 const trail: TrailNode[] = [
@@ -40,5 +41,15 @@ describe("Side Panel instrument", () => {
     expect(input.required).toBe(true);
     expect(input.maxLength).toBe(120);
     expect(host.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(true);
+  });
+
+  it("keeps onboarding inline and advances with native buttons", () => {
+    const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
+    act(() => root.render(<Onboarding />));
+    expect(host.querySelector("section.onboarding")).not.toBeNull();
+    expect(host.textContent).toContain("Keep the useful path.");
+    act(() => host.querySelector<HTMLButtonElement>('button:not(.text-control)')?.click());
+    expect(host.textContent).toContain("The trail follows you.");
+    expect(host.querySelector('[role="dialog"]')).toBeNull();
   });
 });
