@@ -76,7 +76,7 @@
 
 ## Current release checkpoint — 2026-08-13
 
-- Exact committed head: `5ec7fa1118ea55f6c69a971f52fc72565c456842` (`Document compatibility and Loot surface boundaries`).
+- Exact committed head is reported from the final `git rev-parse HEAD` handoff; this log records the release boundary without self-referential hashes.
 - Compatibility recovery is included in the preceding commits: Arcade room/runtime/reducer/service-worker contracts and minimal Loot runtime/storage/messages are present; Side Panel now exposes Save as Loot, optional note, Save + Close, Loot drawer, and the small Arcade entry point.
 - Current automated gate: PASS — 23 test files, 145 tests; typecheck, lint, production build, extension validator, and `git diff --check` all pass. Build emits Side Panel, Portal, Popup, Room, and service-worker bundles.
 - Direct browser check: PASS for the rendered Side Panel preview in Chrome at the local Vite surface; observed trail, fold action, Loot affordances, Arcade affordance, focusable controls, and reduced-motion behavior. This is UI preview evidence and does not prove extension-tab lifecycle behavior.

@@ -4,7 +4,7 @@ TABYRINTH helps you explore browser rabbit holes without losing your main task. 
 
 ## Current state
 
-This local `codex/prd-completion` branch is clean at head `57ed807993b407e092ff938a3c905e9a1095b599`, with Portal Fold as the flagship, Arcade compatibility restored, and minimal Loot exposed behind the Side Panel. Final untouched-profile Chrome critical path remains **UNVERIFIED**.
+This local `codex/prd-completion` branch is clean at the latest committed checkpoint, with Portal Fold as the flagship, Arcade compatibility restored, and minimal Loot exposed behind the Side Panel. Final untouched-profile Chrome critical path remains **UNVERIFIED**.
 
 The complete judge path (real Chrome tab reorder, Vault/Boss puzzle, VOID tab, and victory) remains **UNVERIFIED** because no direct real-Chrome critical-path run is recorded. Do not present those behaviors as browser-proven until direct Chrome evidence exists.
 
