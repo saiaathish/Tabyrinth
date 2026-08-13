@@ -61,8 +61,8 @@ Why this is not generic: the visual grammar treats browser ancestry as an instru
 
 The Portal and Side Panel use native semantic controls plus one adapted Folder visual. Native CSS supplies state feedback, focus-visible outlines, mutually exclusive drawers, compact collection affordances, and a reduced-motion equivalent.
 
-Selected interaction roles: one primary fold/unseal action, a local trail window, and one compact Portal collection. The page remains one column and uses semantic buttons, headings, lists, alert/status regions, and honest local view-model states. Runtime message wiring is implemented through the typed background contract.
+Selected interaction roles: one primary fold/unseal action, a local trail window, compact Portal and Loot collections, and a bounded Loot composer. The page remains one column and uses semantic buttons, headings, lists, alert/status regions, and honest local view-model states. Runtime message wiring is implemented through the typed background contract.
 
 ## Final simplification
 
-The active product vocabulary is limited to Quest, Main Path, Detour, and Portal. Arcade and Loot were removed from active surfaces. First-run onboarding uses four inline stages and persists completion in local extension storage. React Bits research remains inspiration-only; existing local primitives were the safer accessible fit.
+The primary product vocabulary is limited to Quest, Main Path, Detour, and Portal. Arcade remains a small compatibility escape hatch and Loot remains a minimal optional page-save drawer; neither competes with the flagship path. First-run onboarding uses four inline stages and persists completion in local extension storage. React Bits research remains inspiration-only; existing local primitives were the safer accessible fit.

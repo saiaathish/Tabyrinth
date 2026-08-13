@@ -1,6 +1,7 @@
 import { reduceQuest } from "./reducer";
 import { questStorage } from "./storage";
 import { createQuestSession, questSessionStorage, type QuestSession, type QuestTabBinding } from "./session";
+import { storage as arcadeStorage } from "../platform/chrome-storage";
 import type { ContextRoom, Quest, QuestState, SavedTab, SideQuest } from "./types";
 import type { QuestMessage, QuestSnapshot } from "./messages";
 
@@ -53,6 +54,10 @@ async function activeBrowserTab(): Promise<chrome.tabs.Tab> {
   return tab;
 }
 
+async function isArcadeOwnedTab(tabId: number): Promise<boolean> {
+  const state = await arcadeStorage.get();
+  return Boolean(state?.roomIdByTabId[String(tabId)]);
+}
 
 function roomForMessage(state: QuestState, questId: string, roomId: string): ContextRoom {
   const room = state.rooms[roomId];
@@ -115,6 +120,7 @@ async function ensureQuestGroup(session: QuestSession, tab: chrome.tabs.Tab): Pr
 async function getControlledTab(session: QuestSession, binding: QuestTabBinding, expectedUrl?: string): Promise<chrome.tabs.Tab | null> {
   try {
     if (session.windowId === null || session.groupId === null) return null;
+    if (await isArcadeOwnedTab(binding.tabId)) return null;
     const tab = await chrome.tabs.get(binding.tabId);
     if (tab.id !== binding.tabId) return null;
     if (expectedUrl !== undefined && tab.url !== expectedUrl) return null;
@@ -143,14 +149,14 @@ async function findReusableTab(session: QuestSession, savedTab: SavedTab, allowe
     const candidates = await chrome.tabs.query({ groupId });
     let safeGroup = true;
     for (const tab of candidates) {
-      if (tab.id === undefined || (!boundIds.has(tab.id) && (!usableUrl(tab.url) || !allowedUrls.has(tab.url)))) {
+      if (tab.id === undefined || await isArcadeOwnedTab(tab.id) || (!boundIds.has(tab.id) && (!usableUrl(tab.url) || !allowedUrls.has(tab.url)))) {
         safeGroup = false;
         break;
       }
     }
     if (!safeGroup) continue;
     const candidate = candidates.find((tab) => tab.id !== undefined && !boundIds.has(tab.id) && tab.url === savedTab.url && (session.windowId === null || tab.windowId === session.windowId));
-    if (candidate) return { tab: candidate, groupId };
+    if (candidate && !(await isArcadeOwnedTab(candidate.id!))) return { tab: candidate, groupId };
   }
   return null;
 }
@@ -278,6 +284,7 @@ async function handleAddCurrentTab(state: QuestState, session: QuestSession, mes
   if (state.activeRoomId !== room.id) throw new Error("Enter this Context Room before adding browser work.");
   const tab = await activeBrowserTab();
   if (tab.id === undefined) throw new Error("The active browser tab cannot be managed.");
+  if (await isArcadeOwnedTab(tab.id)) throw new Error("Arcade tabs cannot be added to a Quest.");
   const existing = session.bindings[String(tab.id)];
     if (existing) {
     if (existing.roomId !== room.id) throw new Error("That tab already belongs to another Context Room.");
@@ -478,6 +485,7 @@ export async function restoreQuestTab(tabId: number): Promise<boolean> {
   const binding = session.bindings[String(tabId)];
   if (!binding || session.groupId === null || session.windowId === null) return false;
   try {
+    if (await isArcadeOwnedTab(tabId)) return false;
     const tab = await chrome.tabs.get(tabId);
     const state = await questStorage.get();
     const saved = state.rooms[binding.roomId]?.tabs.find((candidate) => candidate.id === binding.savedTabId);

@@ -1,11 +1,12 @@
 import { assertPortalState, isPortalState } from "./invariants";
-import { emptyPortalState, type PortalState } from "./types";
+import { emptyPortalState, type LootItem, type PortalState } from "./types";
 import type { BranchGraph } from "../branch/types";
 import { isPortalQuest, type PortalQuest } from "./quest";
 
 export const PORTAL_STATE_KEY = "tabyrinth.portals";
 export const BRANCH_GRAPH_KEY = "tabyrinth.branchGraph";
 export const PORTAL_SESSION_KEY = "tabyrinth.portalBindings";
+export const LOOT_KEY = "tabyrinth.loot";
 export const PORTAL_QUESTS_KEY = "tabyrinth.portalQuests";
 export type PortalSession = { portalTabIds: Record<string, number>; bindings: Record<string, { nodeId: string; windowId: number | null }> };
 
@@ -16,6 +17,8 @@ export const portalStorage = {
   async setGraph(graph: BranchGraph) { await chrome.storage.local.set({ [BRANCH_GRAPH_KEY]: graph }); },
   async getSession(): Promise<PortalSession> { const result = await chrome.storage.session.get(PORTAL_SESSION_KEY); const value = result[PORTAL_SESSION_KEY]; return value && typeof value === "object" && "portalTabIds" in value && "bindings" in value ? value as PortalSession : { portalTabIds: {}, bindings: {} }; },
   async setSession(session: PortalSession) { await chrome.storage.session.set({ [PORTAL_SESSION_KEY]: session }); },
+  async getLoot(): Promise<LootItem[]> { const result = await chrome.storage.local.get(LOOT_KEY); return Array.isArray(result[LOOT_KEY]) ? result[LOOT_KEY] as LootItem[] : []; },
+  async addLoot(item: LootItem) { const loot = await this.getLoot(); await chrome.storage.local.set({ [LOOT_KEY]: [...loot, item] }); },
   async getQuests(): Promise<PortalQuest[]> {
     const result = await chrome.storage.local.get(PORTAL_QUESTS_KEY);
     return Array.isArray(result[PORTAL_QUESTS_KEY]) ? result[PORTAL_QUESTS_KEY].filter(isPortalQuest) : [];

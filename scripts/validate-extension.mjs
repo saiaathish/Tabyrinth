@@ -5,7 +5,7 @@ import { join, resolve } from "node:path";
 
 const dist = resolve(process.argv[2] ?? "dist");
 const manifestPath = join(dist, "manifest.json");
-const requiredPages = ["sidepanel.html", "portal.html", "popup.html"];
+const requiredPages = ["sidepanel.html", "portal.html", "popup.html", "room.html"];
 const fail = (message) => {
   console.error(`Extension validation failed: ${message}`);
   process.exitCode = 1;

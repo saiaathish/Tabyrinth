@@ -6,6 +6,7 @@ import type { BranchGraph } from "../branch/types";
 import { BranchRuntime } from "../branch/runtime";
 import { emptyBranchGraph } from "../branch/types";
 import { createPortalQuest, finishPortalQuest } from "./quest";
+import type { LootItem } from "./types";
 
 const chromeFold = { get: async (id: number) => chrome.tabs.get(id) as unknown as Promise<FoldTab>, query: async (q: { windowId?: number }) => chrome.tabs.query(q) as unknown as Promise<FoldTab[]>, create: async (url: string) => chrome.tabs.create({ url }) as unknown as Promise<FoldTab>, move: async (ids: number[], index: number, windowId: number) => chrome.tabs.move(ids, { index, windowId }), remove: async (ids: number[]) => chrome.tabs.remove(ids), activate: async (id: number) => chrome.tabs.update(id, { active: true }) };
 const isSupportedWebUrl = (url: string | null | undefined): url is string => {
@@ -19,7 +20,7 @@ export async function getPortalState() {
   const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
   const activeTabId = activeTabs[0]?.id;
   const currentNodeId = activeTabId === undefined ? null : graph.tabBindings[String(activeTabId)]?.nodeId ?? null;
-  return { state: await portalStorage.get(), graph, currentNodeId, quest: await portalStorage.getActiveQuest() ?? await portalStorage.getLatestQuest() };
+  return { state: await portalStorage.get(), graph, currentNodeId, quest: await portalStorage.getActiveQuest() ?? await portalStorage.getLatestQuest(), loot: await portalStorage.getLoot() };
 }
 
 /**
@@ -144,6 +145,59 @@ export async function markPortalPath(nodeId: string) {
   return runtime.snapshot();
 }
 
+export const LOOT_CLOSE_UNSAFE = "LOOT_CLOSE_UNSAFE";
+
+export async function savePortalLoot(nodeId: string, note?: string, close = false) {
+  const graph = await graphWithSession();
+  const node = graph.nodes[nodeId];
+  const quest = await portalStorage.getActiveQuest();
+  if (!node || node.status !== "live" || !quest || quest.id !== node.questId || !isSupportedWebUrl(node.url)) throw new Error("UNSUPPORTED_LOOT_PAGE");
+
+  let tabId: number | null = null;
+  if (close) {
+    const bindings = Object.entries(graph.tabBindings).filter(([, binding]) => binding.nodeId === node.id);
+    if (bindings.length !== 1) throw new Error(LOOT_CLOSE_UNSAFE);
+    const [rawTabId, binding] = bindings[0];
+    const candidateTabId = Number(rawTabId);
+    if (!Number.isInteger(candidateTabId) || binding.windowId === null || !Number.isInteger(binding.windowId) || binding.windowId < 0) throw new Error(LOOT_CLOSE_UNSAFE);
+    const tab = await chrome.tabs.get(candidateTabId).catch(() => null);
+    if (!tab || tab.id !== candidateTabId || tab.windowId !== binding.windowId || tab.url !== node.url || !isSupportedWebUrl(tab.url)) throw new Error(LOOT_CLOSE_UNSAFE);
+    tabId = candidateTabId;
+  }
+
+  const trimmedNote = note?.trim();
+  const item: LootItem = {
+    id: crypto.randomUUID(),
+    questId: node.questId,
+    sourceNodeId: node.id,
+    url: node.url,
+    title: node.title ?? node.url,
+    faviconUrl: node.faviconUrl,
+    ...(trimmedNote ? { note: trimmedNote } : {}),
+    createdAt: Date.now(),
+  };
+  await portalStorage.addLoot(item);
+
+  const lootedAt = Date.now();
+  await portalStorage.setGraph({
+    nodes: { ...graph.nodes, [node.id]: { ...node, disposition: "loot", updatedAt: lootedAt } },
+    tabBindings: {},
+  });
+  if (tabId !== null) {
+    await chrome.tabs.remove(tabId);
+    const latestGraph = await portalStorage.getGraph() ?? graph;
+    const latestNode = latestGraph.nodes[node.id] ?? node;
+    await portalStorage.setGraph({
+      nodes: { ...latestGraph.nodes, [node.id]: { ...latestNode, disposition: "loot", status: "closed", updatedAt: Date.now() } },
+      tabBindings: {},
+    });
+    const session = await portalStorage.getSession();
+    if (session.bindings[String(tabId)]?.nodeId === node.id) delete session.bindings[String(tabId)];
+    await portalStorage.setSession(session);
+    if (quest.currentNodeId === node.id) await portalStorage.putQuest({ ...quest, currentNodeId: node.parentNodeId });
+  }
+  return item;
+}
 export async function renamePortal(portalId: string, title: string) {
   const state = await portalStorage.get();
   const portal = state.portals[portalId];
