@@ -16,6 +16,7 @@ export type Portal = { id: string; questId: string; title: string; originNodeId:
 export type FoldPhase = "snapshot-persisted" | "portal-open" | "tabs-closing" | "sealed" | "blocked";
 export type FoldTransaction = { portalId: string; phase: FoldPhase; closeableNodeIds: string[] };
 export type PortalState = { portals: Record<string, Portal>; folds: Record<string, FoldTransaction> };
+export type LootItem = { id: string; questId: string; sourceNodeId: string; url: string; title: string; faviconUrl: string | null; note?: string; createdAt: number };
 export const emptyPortalState = (): PortalState => ({ portals: {}, folds: {} });
 export type PortalAction =
   | { type: "SNAPSHOT_PERSISTED"; portal: Portal; closeableNodeIds: string[] }
