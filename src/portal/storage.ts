@@ -6,9 +6,11 @@ import { isPortalQuest, type PortalQuest } from "./quest";
 export const PORTAL_STATE_KEY = "tabyrinth.portals";
 export const BRANCH_GRAPH_KEY = "tabyrinth.branchGraph";
 export const PORTAL_SESSION_KEY = "tabyrinth.portalBindings";
+export const PORTAL_NAVIGATION_KEY = "tabyrinth.portalNavigationTargets";
 export const LOOT_KEY = "tabyrinth.loot";
 export const PORTAL_QUESTS_KEY = "tabyrinth.portalQuests";
 export type PortalSession = { portalTabIds: Record<string, number>; bindings: Record<string, { nodeId: string; windowId: number | null }> };
+export type PendingPortalNavigation = { sourceTabId: number; targetTabId: number; url: string; createdAt: number };
 
 export const portalStorage = {
   async get(): Promise<PortalState> { const result = await chrome.storage.local.get(PORTAL_STATE_KEY); return isPortalState(result[PORTAL_STATE_KEY]) ? result[PORTAL_STATE_KEY] : emptyPortalState(); },
@@ -17,6 +19,8 @@ export const portalStorage = {
   async setGraph(graph: BranchGraph) { await chrome.storage.local.set({ [BRANCH_GRAPH_KEY]: graph }); },
   async getSession(): Promise<PortalSession> { const result = await chrome.storage.session.get(PORTAL_SESSION_KEY); const value = result[PORTAL_SESSION_KEY]; return value && typeof value === "object" && "portalTabIds" in value && "bindings" in value ? value as PortalSession : { portalTabIds: {}, bindings: {} }; },
   async setSession(session: PortalSession) { await chrome.storage.session.set({ [PORTAL_SESSION_KEY]: session }); },
+  async getPendingNavigations(): Promise<Record<string, PendingPortalNavigation>> { const result = await chrome.storage.session.get(PORTAL_NAVIGATION_KEY); const value = result[PORTAL_NAVIGATION_KEY]; return value && typeof value === "object" ? value as Record<string, PendingPortalNavigation> : {}; },
+  async setPendingNavigations(navigations: Record<string, PendingPortalNavigation>) { await chrome.storage.session.set({ [PORTAL_NAVIGATION_KEY]: navigations }); },
   async getLoot(): Promise<LootItem[]> { const result = await chrome.storage.local.get(LOOT_KEY); return Array.isArray(result[LOOT_KEY]) ? result[LOOT_KEY] as LootItem[] : []; },
   async addLoot(item: LootItem) { const loot = await this.getLoot(); await chrome.storage.local.set({ [LOOT_KEY]: [...loot, item] }); },
   async getQuests(): Promise<PortalQuest[]> {

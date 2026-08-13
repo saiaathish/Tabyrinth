@@ -3,7 +3,7 @@ import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createRoot } from "react-dom/client";
 import { act } from "react";
-import { SidePanel, type PortalItem, type TrailNode } from "./main";
+import { errorState, SidePanel, userFacingError, type PortalItem, type TrailNode } from "./main";
 import { Onboarding } from "./onboarding";
 
 const quest = { id: "q", title: "Ship the next release", rootNodeId: "a", currentNodeId: "c", status: "active" as const, createdAt: 1, completedAt: null };
@@ -13,7 +13,6 @@ const trail: TrailNode[] = [
   { id: "c", title: "Lifecycle edge cases", url: "https://issues.chromium.org", disposition: "unclassified", status: "live" },
 ];
 const portals: PortalItem[] = [{ id: "p", title: "Animation research", nodeIds: ["b", "c"], status: "sealed" }];
-const loot = [{ id: "l", title: "Lifecycle notes", url: "https://developer.chrome.com/lifecycle", note: "Keep this detail" }];
 const trackableQuest = { ...quest, currentNodeId: null };
 
 afterEach(() => { document.body.innerHTML = ""; });
@@ -21,7 +20,7 @@ afterEach(() => { document.body.innerHTML = ""; });
 describe("Side Panel instrument", () => {
   it("renders one trail and a consequence-clear primary action", () => {
     const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
-    act(() => root.render(<SidePanel state="active" quest={quest} trail={trail} portals={portals} loot={loot} />));
+    act(() => root.render(<SidePanel state="active" quest={quest} trail={trail} portals={portals} />));
     expect(host.querySelectorAll("ol.quest-trail")).toHaveLength(1);
     expect(host.textContent).toContain("Fold this detour");
     expect(host.textContent).not.toContain("Local trail");
@@ -30,7 +29,7 @@ describe("Side Panel instrument", () => {
 
   it("keeps collections mutually exclusive and restores focus to the requested drawer", () => {
     const onDrawer = vi.fn(); const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
-    act(() => root.render(<SidePanel state="active" quest={quest} trail={trail} portals={portals} loot={loot} drawer="portals" onDrawer={onDrawer} />));
+    act(() => root.render(<SidePanel state="active" quest={quest} trail={trail} portals={portals} drawer="portals" onDrawer={onDrawer} />));
     expect(host.querySelectorAll("aside")).toHaveLength(1);
     expect(host.textContent).toContain("Animation research");
     expect(host.querySelector<HTMLButtonElement>('aside button[aria-label="Close portals"]')).toBe(document.activeElement);
@@ -38,33 +37,56 @@ describe("Side Panel instrument", () => {
 
   it("renders a required, bounded goal before Begin Quest", () => {
     const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
-    act(() => root.render(<SidePanel state="start" quest={null} trail={[]} portals={[]} loot={[]} />));
+    act(() => root.render(<SidePanel state="start" quest={null} trail={[]} portals={[]} />));
     const input = host.querySelector<HTMLInputElement>("input")!;
     expect(input.required).toBe(true);
     expect(input.maxLength).toBe(120);
     expect(host.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(true);
   });
 
-  it("exposes the minimal Loot save and drawer affordances", () => {
+  it("removes deprecated Arcade and Loot controls", () => {
     const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
-    act(() => root.render(<SidePanel state="active" quest={quest} trail={trail} portals={portals} loot={loot} />));
-    expect(host.textContent).toContain("Save as Loot");
-    expect(host.textContent).toContain("Loot");
+    act(() => root.render(<SidePanel state="active" quest={quest} trail={trail} portals={portals} />));
+    expect(host.textContent).not.toContain("Arcade");
+    expect(host.textContent).not.toContain("Loot");
   });
 
   it("renders Track this tab only for a trackable quest", () => {
     const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
-    act(() => root.render(<SidePanel state="nothing-to-fold" quest={trackableQuest} trail={[]} portals={portals} loot={loot} trackable />));
-    expect(Array.from(host.querySelectorAll("button")).some((button) => button.textContent === "Track this tab")).toBe(true);
-    act(() => root.render(<SidePanel state="nothing-to-fold" quest={trackableQuest} trail={[]} portals={portals} loot={loot} />));
-    expect(host.textContent).not.toContain("Track this tab");
+    act(() => root.render(<SidePanel state="untracked" quest={trackableQuest} trail={[]} portals={portals} trackable />));
+    expect(host.textContent).toContain("OUTSIDE TRAIL");
+    expect(host.textContent).toContain("This tab isn't on your Quest yet.");
+    expect(host.textContent).toContain("Add it to your Main Path, or return to a tracked tab.");
+    expect(host.textContent).toContain("ADD TO MAIN PATH");
+    act(() => root.render(<SidePanel state="nothing-to-fold" quest={trackableQuest} trail={[]} portals={portals} />));
+    expect(Array.from(host.querySelectorAll("button")).some((button) => button.textContent === "ADD TO MAIN PATH")).toBe(false);
+    act(() => root.render(<SidePanel state="nothing-to-fold" quest={trackableQuest} trail={[]} portals={portals} />));
+    expect(host.textContent).not.toContain("ADD TO MAIN PATH");
   });
 
   it("dispatches the track action", () => {
     const onAction = vi.fn(); const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
-    act(() => root.render(<SidePanel state="nothing-to-fold" quest={trackableQuest} trail={[]} portals={portals} loot={loot} trackable onAction={onAction} />));
-    act(() => Array.from(host.querySelectorAll<HTMLButtonElement>("button")).find((button) => button.textContent === "Track this tab")?.click());
+    act(() => root.render(<SidePanel state="untracked" quest={trackableQuest} trail={[]} portals={portals} trackable onAction={onAction} />));
+    act(() => Array.from(host.querySelectorAll<HTMLButtonElement>("button")).find((button) => button.textContent === "ADD TO MAIN PATH")?.click());
     expect(onAction).toHaveBeenCalledWith("track");
+  });
+
+  it("keeps persistent notices in document flow", () => {
+    const host = document.createElement("div"); document.body.append(host); const root = createRoot(host);
+    act(() => root.render(<SidePanel state="unsafe" quest={quest} trail={trail} portals={portals} notice="This tab isn't on your Quest yet." />));
+    const notice = host.querySelector<HTMLElement>(".surface-notice")!;
+    expect(notice).toBeTruthy();
+    expect(notice.getAttribute("role")).toBe("alert");
+    expect(notice.compareDocumentPosition(host.querySelector("footer")!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(host.textContent).not.toContain("ORIGIN LOST");
+    expect(host.textContent).not.toContain("QUEST_ORIGIN_UNAVAILABLE");
+  });
+
+  it("maps unavailable lineage to the recoverable outside-trail state", () => {
+    expect(errorState("UNTRACKED_TAB_PARENT_UNAVAILABLE")).toBe("untracked");
+    expect(userFacingError("UNTRACKED_TAB_PARENT_UNAVAILABLE")).toBe("This tab isn't on your Quest yet.");
+    expect(errorState("UNSUPPORTED_ACTIVE_TAB")).toBe("unsupported");
+    expect(userFacingError("UNSUPPORTED_ACTIVE_TAB")).toBe("This tab is unsupported.");
   });
 
   it("keeps onboarding inline and advances with native buttons", () => {
