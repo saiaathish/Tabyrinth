@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BranchGraph, BranchNode } from "../branch/types";
-import { capturePortalCreated } from "./runtime";
+import { capturePortalCreated, reconcilePortalSession } from "./runtime";
 import { BRANCH_GRAPH_KEY, PORTAL_QUESTS_KEY, PORTAL_SESSION_KEY, type PortalSession } from "./storage";
 
 const local: Record<string, unknown> = {};
@@ -59,6 +59,19 @@ describe("Portal Chrome ancestry capture", () => {
 
     expect(storedGraph()).toEqual({ nodes: { root }, tabBindings: { "1": { nodeId: root.id, windowId: 7 } } });
     expect(chrome.tabs.query).not.toHaveBeenCalled();
+  });
+
+  it("clears stale session bindings after a worker wake while retaining ancestry", async () => {
+    const live = node("live", "quest-a");
+    const stale = node("stale", "quest-a");
+    seed({ nodes: { live, stale }, tabBindings: { "7": { nodeId: live.id, windowId: 3 }, "8": { nodeId: stale.id, windowId: 3 } } });
+    (chrome.tabs.get as unknown as ReturnType<typeof vi.fn>) = vi.fn(async (id: number) => id === 7 ? { id, windowId: 3, url: live.url } : Promise.reject(new Error("missing tab")));
+
+    await reconcilePortalSession();
+
+    expect((session[PORTAL_SESSION_KEY] as PortalSession).bindings).toEqual({ "7": { nodeId: live.id, windowId: 3 } });
+    expect((local[BRANCH_GRAPH_KEY] as BranchGraph).nodes.stale?.status).toBe("closed");
+    expect((local[BRANCH_GRAPH_KEY] as BranchGraph).nodes.live?.status).toBe("live");
   });
 
   it("inherits Quest ownership only from the explicit live opener", async () => {

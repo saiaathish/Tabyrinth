@@ -15,11 +15,58 @@ const isSupportedWebUrl = (url: string | null | undefined): url is string => {
 };
 
 export async function getPortalState() {
+  await reconcilePortalSession();
   const graph = await graphWithSession();
   const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
   const activeTabId = activeTabs[0]?.id;
   const currentNodeId = activeTabId === undefined ? null : graph.tabBindings[String(activeTabId)]?.nodeId ?? null;
   return { state: await portalStorage.get(), graph, currentNodeId, quest: await portalStorage.getActiveQuest() ?? await portalStorage.getLatestQuest(), loot: await portalStorage.getLoot() };
+}
+
+/**
+ * Reconcile ephemeral branch bindings after a worker wake or extension reload.
+ * Durable ancestry is retained, while bindings that can no longer be proven to
+ * identify the same live HTTP(S) tab are removed fail-closed. Portal-tab IDs
+ * are intentionally left untouched; their manual-close lifecycle is handled by
+ * the onRemoved event and durable Portal reducer.
+ */
+export async function reconcilePortalSession(): Promise<void> {
+  const durable = await portalStorage.getGraph() ?? emptyBranchGraph();
+  const session = await portalStorage.getSession();
+  const nextBindings = { ...session.bindings };
+  const nextNodes = { ...durable.nodes };
+  let changed = false;
+
+  for (const [rawTabId, binding] of Object.entries(session.bindings)) {
+    const tabId = Number(rawTabId);
+    const node = durable.nodes[binding.nodeId];
+    const tab = Number.isInteger(tabId) && tabId >= 0
+      ? await chrome.tabs.get(tabId).catch(() => null)
+      : null;
+
+    const valid = Boolean(
+      node
+      && node.status === "live"
+      && node.url
+      && tab
+      && tab.id === tabId
+      && Number.isInteger(binding.windowId)
+      && binding.windowId! >= 0
+      && tab.windowId === binding.windowId
+      && tab.url === node.url,
+    );
+    if (valid) continue;
+
+    delete nextBindings[rawTabId];
+    changed = true;
+    // A missing tab is a durable closure; malformed or drifted bindings are
+    // merely detached so later operations cannot close an uncertain tab.
+    if (!tab && node?.status === "live") nextNodes[node.id] = { ...node, status: "closed", updatedAt: Date.now() };
+  }
+
+  if (!changed) return;
+  await portalStorage.setGraph({ nodes: nextNodes, tabBindings: {} });
+  await portalStorage.setSession({ ...session, bindings: nextBindings });
 }
 
 async function graphWithSession(): Promise<BranchGraph> {

@@ -4,7 +4,7 @@ import { reduceGame } from "../game/reducer";
 import type { GameState, Message, RoomGameAction, RoomKind } from "../game/types";
 import { handleQuestMessage, handleQuestTabRemoved, isQuestMessage, reconcileQuestSession, restoreQuestTab, restoreQuestWorkspace } from "../quest/runtime";
 import { parsePortalMessage } from "../portal/messages";
-import { beginPortalQuest, capturePortalCreated, capturePortalRemoved, capturePortalUpdated, deletePortal, finishActivePortalQuest, foldPortal, getPortalState, markPortalPath, renamePortal, savePortalLoot, unsealPortal } from "../portal/runtime";
+import { beginPortalQuest, capturePortalCreated, capturePortalRemoved, capturePortalUpdated, deletePortal, finishActivePortalQuest, foldPortal, getPortalState, markPortalPath, reconcilePortalSession, renamePortal, savePortalLoot, unsealPortal } from "../portal/runtime";
 import { portalStorage } from "../portal/storage";
 import { portalReducer } from "../portal/reducer";
 
@@ -114,7 +114,7 @@ const reconcile = () => {
 };
 
 const reconcileQuest = () => {
-  void enqueueMutation(async () => { await reconcileQuestSession(); await restoreQuestWorkspace(); });
+  void enqueueMutation(async () => { await reconcilePortalSession(); await reconcileQuestSession(); await restoreQuestWorkspace(); });
 };
 
 async function onRemoved(tabId: number) {
