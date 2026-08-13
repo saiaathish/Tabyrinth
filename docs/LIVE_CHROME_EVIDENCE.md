@@ -30,7 +30,7 @@ Evidence: implementation and automated runtime/message tests only.
 
 Expected: four short stages explain the useful path, trail, reversible detour, and Portal; completion persists and Replay introduction reopens it.
 Observed: no live extension page was accessible.
-Status: `PROVEN_AUTOMATED` for component/persistence behavior; `NOT_TESTED` live.
+Status: `PROVEN_AUTOMATED` for rendering/advance; `CODE_ONLY` for persistence; `NOT_TESTED` live.
 Evidence: onboarding source and current component tests.
 
 ### Main Path
